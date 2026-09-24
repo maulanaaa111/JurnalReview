@@ -47,6 +47,7 @@
             font-family: 'Inter', sans-serif;
             background-color: #0B0F17;
             color: #E2E8F0;
+            overflow-x: hidden;
         }
 
         /* Custom scrollbars */
@@ -65,31 +66,33 @@
             background: #334155;
         }
 
-        /* PDF Render Template Styling - Offscreen placement & explicit sizing for html2canvas */
+        /* PDF Render Template Styling - Calibrated to 720px for perfect A4 width fitting with margins */
         #pdf-wrapper {
-            position: absolute;
+            position: fixed;
             top: 0;
-            left: -9999px;
-            width: 800px;
-            z-index: 99999;
+            left: 0;
+            width: 720px;
+            z-index: -9999;
             opacity: 0;
             pointer-events: none;
             background-color: #ffffff;
         }
 
         #pdf-render-area {
-            width: 800px;
-            padding: 30px;
-            background-color: #ffffff;
-            color: #0f172a;
+            width: 720px;
+            padding: 24px;
+            background-color: #ffffff !important;
+            color: #0f172a !important;
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
             box-sizing: border-box;
+            margin: 0 auto;
         }
 
         .pdf-page-block {
             page-break-inside: avoid !important;
             break-inside: avoid !important;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
+            box-sizing: border-box;
         }
 
         .pdf-text-content {
@@ -97,38 +100,38 @@
             word-wrap: break-word;
             word-break: break-word;
             line-height: 1.6;
-            color: #1e293b;
+            color: #1e293b !important;
         }
 
         .animate-fade-in {
-            animation: fadeIn 0.3s ease-in-out;
+            animation: fadeIn 0.25s ease-in-out;
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(6px); }
+            from { opacity: 0; transform: translateY(5px); }
             to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-white">
 
-    <header class="border-b border-slate-800 bg-[#0d1322]/80 backdrop-blur-md sticky top-0 z-40">
+    <header class="border-b border-slate-800 bg-[#0d1322]/90 backdrop-blur-md sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 font-bold text-xl shadow-lg shadow-emerald-500/20">
                     <i class="fa-solid me-0.5 fa-chart-line"></i>
                 </div>
                 <div>
-                    <h1 class="font-bold text-lg leading-tight text-slate-100">Trade Execution Review</h1>
-                    <p class="text-xs text-slate-400">Journal & Performance Optimizer</p>
+                    <h1 class="font-bold text-base sm:text-lg leading-tight text-slate-100">Trade Execution Review</h1>
+                    <p class="text-xs text-slate-400 hidden sm:block">Journal & Performance Optimizer</p>
                 </div>
             </div>
 
             <div class="flex items-center gap-2">
-                <button id="nav-new-btn" onclick="switchTab('review')" class="px-3.5 py-1.5 text-xs sm:text-sm font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center gap-2 shadow-md shadow-emerald-600/20">
+                <button id="nav-new-btn" onclick="switchTab('review')" class="px-3 py-1.5 sm:px-3.5 sm:py-1.5 text-xs sm:text-sm font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center gap-2 shadow-md shadow-emerald-600/20">
                     <i class="fa-solid fa-plus"></i> <span class="hidden sm:inline">Review Baru</span>
                 </button>
-                <button id="nav-history-btn" onclick="switchTab('history')" class="px-3.5 py-1.5 text-xs sm:text-sm font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition flex items-center gap-2 border border-slate-700">
+                <button id="nav-history-btn" onclick="switchTab('history')" class="px-3 py-1.5 sm:px-3.5 sm:py-1.5 text-xs sm:text-sm font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition flex items-center gap-2 border border-slate-700">
                     <i class="fa-solid fa-folder-open"></i> <span class="hidden sm:inline">Riwayat Journal</span> (<span id="history-count-badge">0</span>)
                 </button>
                 <button onclick="exportJSONBackup()" title="Backup Data JSON" class="p-2 text-xs sm:text-sm rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700">
@@ -138,14 +141,15 @@
         </div>
     </header>
 
-    <main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+    <main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-grow w-full">
 
         <!-- VIEW 1: REVIEW FORM -->
         <div id="view-review" class="animate-fade-in space-y-6">
             
-            <div class="bg-cardbg border border-cardborder rounded-2xl p-5 sm:p-6 shadow-xl relative overflow-hidden">
+            <!-- Meta information card -->
+            <div class="bg-cardbg border border-cardborder rounded-2xl p-4 sm:p-6 shadow-xl relative overflow-hidden">
                 <div class="absolute top-0 left-0 w-1.5 h-full bg-emerald-500"></div>
-                <h2 class="text-lg font-semibold text-slate-100 mb-4 flex items-center gap-2">
+                <h2 class="text-base sm:text-lg font-semibold text-slate-100 mb-4 flex items-center gap-2">
                     <i class="fa-regular fa-id-card text-emerald-400"></i> Informasi Transaksi / Sesi
                 </h2>
 
@@ -173,60 +177,71 @@
                     </div>
                 </div>
 
-                <!-- Screenshot Attachment -->
-                <div class="mt-4 pt-4 border-t border-slate-800">
-                    <label class="block text-xs font-medium text-slate-400 mb-2">Lampirkan Screenshot Chart (opsional)</label>
-                    <div class="flex items-center gap-4">
-                        <label class="cursor-pointer bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg px-4 py-2 text-xs font-medium text-slate-300 flex items-center gap-2 transition">
-                            <i class="fa-solid fa-image text-emerald-400"></i> Pilih Gambar Chart
-                            <input type="file" id="chart-image-input" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
-                        </label>
-                        <span id="image-filename" class="text-xs text-slate-500 italic truncate max-w-xs">Belum ada gambar terpilih</span>
-                        <button id="remove-img-btn" onclick="removeImage()" class="hidden text-xs text-red-400 hover:underline">Hapus</button>
+                <div class="mt-5 pt-4 border-t border-slate-800">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300">
+                                Lampirkan Screenshot Chart / P&L (Bisa pilih lebih dari 1)
+                            </label>
+                            <p class="text-[11px] text-slate-400">Unggah chart HTF, LTF, entry, atau hasil posisi tanpa pemotongan gambar.</p>
+                        </div>
+                        <span id="images-count-label" class="text-xs text-slate-400">0 gambar dipilih</span>
                     </div>
-                    <div id="image-preview-container" class="mt-3 hidden">
-                        <img id="image-preview" src="" alt="Chart Preview" class="max-h-48 rounded-lg border border-slate-700 object-cover">
+
+                    <div class="flex flex-wrap items-center gap-3">
+                        <label class="cursor-pointer bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl px-4 py-2.5 text-xs font-semibold text-slate-200 flex items-center gap-2 transition shadow-sm border-dashed hover:border-emerald-500">
+                            <i class="fa-solid fa-images text-emerald-400 text-sm"></i> Tambah Gambar Chart
+                            <input type="file" id="chart-image-input" accept="image/*" multiple class="hidden" onchange="handleImageUpload(event)">
+                        </label>
+                        <button id="clear-all-imgs-btn" type="button" onclick="clearAllImages()" class="hidden px-3 py-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-950/40 border border-red-900/50 rounded-xl transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-trash-can"></i> Hapus Semua
+                        </button>
+                    </div>
+
+                    <!-- Gallery Grid Preview -->
+                    <div id="image-gallery-preview" class="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 hidden">
+                        <!-- Items rendered dynamically -->
                     </div>
                 </div>
             </div>
 
-            <div class="bg-cardbg border border-cardborder rounded-2xl p-5 sm:p-6 shadow-xl">
+            <div class="bg-cardbg border border-cardborder rounded-2xl p-4 sm:p-6 shadow-xl">
                 <div class="mb-4">
                     <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400">Judul Utama</span>
-                    <h2 class="text-xl font-bold text-white mt-1">
+                    <h2 class="text-lg sm:text-xl font-bold text-white mt-1">
                         Was the outcome of the trade a win or a loss?
                     </h2>
-                    <p class="text-sm text-slate-400">Apakah hasil dari transaksi tersebut profit atau rugi?</p>
+                    <p class="text-xs sm:text-sm text-slate-400">Apakah hasil dari transaksi tersebut profit atau rugi?</p>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
                     <!-- WIN BUTTON -->
-                    <button type="button" onclick="selectOutcome('WIN')" id="btn-outcome-win" class="outcome-btn group relative p-5 rounded-xl border-2 border-slate-800 bg-slate-900/60 hover:border-emerald-500 text-left transition-all">
+                    <button type="button" onclick="selectOutcome('WIN')" id="btn-outcome-win" class="outcome-btn group relative p-4 sm:p-5 rounded-xl border-2 border-slate-800 bg-slate-900/60 hover:border-emerald-500 text-left transition-all">
                         <div class="flex items-center justify-between mb-2">
                             <span class="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 font-bold text-lg"><i class="fa-solid fa-trophy"></i></span>
                             <span class="check-icon opacity-0 text-emerald-400 text-xl"><i class="fa-solid fa-circle-check"></i></span>
                         </div>
-                        <h3 class="text-lg font-bold text-emerald-400">Win</h3>
+                        <h3 class="text-base sm:text-lg font-bold text-emerald-400">Win</h3>
                         <p class="text-xs text-slate-400">Profit</p>
                     </button>
 
                     <!-- LOSS BUTTON -->
-                    <button type="button" onclick="selectOutcome('LOSS')" id="btn-outcome-loss" class="outcome-btn group relative p-5 rounded-xl border-2 border-slate-800 bg-slate-900/60 hover:border-rose-500 text-left transition-all">
+                    <button type="button" onclick="selectOutcome('LOSS')" id="btn-outcome-loss" class="outcome-btn group relative p-4 sm:p-5 rounded-xl border-2 border-slate-800 bg-slate-900/60 hover:border-rose-500 text-left transition-all">
                         <div class="flex items-center justify-between mb-2">
                             <span class="p-2 rounded-lg bg-rose-500/10 text-rose-400 font-bold text-lg"><i class="fa-solid fa-chart-line-down"></i></span>
                             <span class="check-icon opacity-0 text-rose-400 text-xl"><i class="fa-solid fa-circle-check"></i></span>
                         </div>
-                        <h3 class="text-lg font-bold text-rose-400">Loss</h3>
+                        <h3 class="text-base sm:text-lg font-bold text-rose-400">Loss</h3>
                         <p class="text-xs text-slate-400">Rugi</p>
                     </button>
 
                     <!-- NO TRADES BUTTON -->
-                    <button type="button" onclick="selectOutcome('NOTRADE')" id="btn-outcome-notrade" class="outcome-btn group relative p-5 rounded-xl border-2 border-slate-800 bg-slate-900/60 hover:border-amber-500 text-left transition-all">
+                    <button type="button" onclick="selectOutcome('NOTRADE')" id="btn-outcome-notrade" class="outcome-btn group relative p-4 sm:p-5 rounded-xl border-2 border-slate-800 bg-slate-900/60 hover:border-amber-500 text-left transition-all">
                         <div class="flex items-center justify-between mb-2">
                             <span class="p-2 rounded-lg bg-amber-500/10 text-amber-400 font-bold text-lg"><i class="fa-solid fa-ban"></i></span>
                             <span class="check-icon opacity-0 text-amber-400 text-xl"><i class="fa-solid fa-circle-check"></i></span>
                         </div>
-                        <h3 class="text-lg font-bold text-amber-400">No Trades</h3>
+                        <h3 class="text-base sm:text-lg font-bold text-amber-400">No Trades</h3>
                         <p class="text-xs text-slate-400">Tidak Ada Transaksi</p>
                     </button>
                 </div>
@@ -234,68 +249,69 @@
 
             <div id="dynamic-questions-container" class="hidden space-y-6">
                 <!-- Branching choice question card -->
-                <div id="branch-question-card" class="bg-cardbg border border-cardborder rounded-2xl p-5 sm:p-6 shadow-xl border-l-4 border-l-sky-500">
+                <div id="branch-question-card" class="bg-cardbg border border-cardborder rounded-2xl p-4 sm:p-6 shadow-xl border-l-4 border-l-sky-500">
                     <span id="section-badge" class="px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wider bg-slate-800 text-sky-400">
                         Bagian 1: Win (Profit)
                     </span>
-                    <h3 id="branch-q-en" class="text-lg font-bold text-slate-100 mt-3">
+                    <h3 id="branch-q-en" class="text-base sm:text-lg font-bold text-slate-100 mt-3">
                         Is this a trade you would take again without knowing the outcome was a win?
                     </h3>
-                    <p id="branch-q-id" class="text-sm text-slate-400 mt-0.5">
+                    <p id="branch-q-id" class="text-xs sm:text-sm text-slate-400 mt-0.5">
                         Apakah ini jenis transaksi yang tetap akan kamu ambil tanpa tahu bahwa hasilnya bakal profit?
                     </p>
 
-                    <div class="flex gap-4 mt-5">
-                        <button type="button" id="btn-branch-yes" onclick="selectBranch('YES')" class="branch-btn px-6 py-2.5 rounded-lg border border-slate-700 bg-slate-900 font-semibold text-sm hover:border-emerald-500 transition flex items-center gap-2">
+                    <div class="flex gap-3 sm:gap-4 mt-5">
+                        <button type="button" id="btn-branch-yes" onclick="selectBranch('YES')" class="branch-btn px-5 py-2.5 rounded-xl border border-slate-700 bg-slate-900 font-semibold text-sm hover:border-emerald-500 transition flex items-center gap-2">
                             <i class="fa-solid fa-thumbs-up"></i> Yes / Ya
                         </button>
-                        <button type="button" id="btn-branch-no" onclick="selectBranch('NO')" class="branch-btn px-6 py-2.5 rounded-lg border border-slate-700 bg-slate-900 font-semibold text-sm hover:border-rose-500 transition flex items-center gap-2">
+                        <button type="button" id="btn-branch-no" onclick="selectBranch('NO')" class="branch-btn px-5 py-2.5 rounded-xl border border-slate-700 bg-slate-900 font-semibold text-sm hover:border-rose-500 transition flex items-center gap-2">
                             <i class="fa-solid fa-thumbs-down"></i> No / Tidak
                         </button>
                     </div>
                 </div>
 
-                <div id="text-questions-card" class="hidden bg-cardbg border border-cardborder rounded-2xl p-5 sm:p-6 shadow-xl space-y-6">
-                    <h3 class="text-md font-semibold text-slate-300 border-b border-slate-800 pb-3 flex items-center gap-2">
+                <!-- Textarea answers card -->
+                <div id="text-questions-card" class="hidden bg-cardbg border border-cardborder rounded-2xl p-4 sm:p-6 shadow-xl space-y-6">
+                    <h3 class="text-sm sm:text-base font-semibold text-slate-200 border-b border-slate-800 pb-3 flex items-center gap-2">
                         <i class="fa-solid fa-pen-to-square text-emerald-400"></i> Evaluasi & Jawaban Detil
                     </h3>
 
                     <div id="q1-box" class="space-y-1.5">
-                        <label class="block font-medium text-slate-200 text-sm" id="q1-en">Question 1</label>
+                        <label class="block font-medium text-slate-200 text-xs sm:text-sm" id="q1-en">Question 1</label>
                         <p class="text-xs text-slate-400 italic mb-2" id="q1-id">Pertanyaan 1</p>
-                        <textarea id="ans-1" rows="3" placeholder="Tuliskan analisis dan penjelasan detil di sini..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-slate-100 focus:outline-none focus:border-emerald-500 transition focus:ring-1 focus:ring-emerald-500"></textarea>
+                        <textarea id="ans-1" rows="3" placeholder="Tuliskan analisis dan penjelasan detil di sini..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs sm:text-sm text-slate-100 focus:outline-none focus:border-emerald-500 transition focus:ring-1 focus:ring-emerald-500"></textarea>
                     </div>
 
                     <div id="q2-box" class="space-y-1.5">
-                        <label class="block font-medium text-slate-200 text-sm" id="q2-en">Question 2</label>
+                        <label class="block font-medium text-slate-200 text-xs sm:text-sm" id="q2-en">Question 2</label>
                         <p class="text-xs text-slate-400 italic mb-2" id="q2-id">Pertanyaan 2</p>
-                        <textarea id="ans-2" rows="3" placeholder="Tuliskan analisis dan penjelasan detil di sini..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-slate-100 focus:outline-none focus:border-emerald-500 transition focus:ring-1 focus:ring-emerald-500"></textarea>
+                        <textarea id="ans-2" rows="3" placeholder="Tuliskan analisis dan penjelasan detil di sini..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs sm:text-sm text-slate-100 focus:outline-none focus:border-emerald-500 transition focus:ring-1 focus:ring-emerald-500"></textarea>
                     </div>
 
                     <div id="q3-box" class="space-y-1.5">
-                        <label class="block font-medium text-slate-200 text-sm" id="q3-en">Question 3</label>
+                        <label class="block font-medium text-slate-200 text-xs sm:text-sm" id="q3-en">Question 3</label>
                         <p class="text-xs text-slate-400 italic mb-2" id="q3-id">Pertanyaan 3</p>
-                        <textarea id="ans-3" rows="3" placeholder="Tuliskan analisis dan penjelasan detil di sini..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-slate-100 focus:outline-none focus:border-emerald-500 transition focus:ring-1 focus:ring-emerald-500"></textarea>
+                        <textarea id="ans-3" rows="3" placeholder="Tuliskan analisis dan penjelasan detil di sini..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs sm:text-sm text-slate-100 focus:outline-none focus:border-emerald-500 transition focus:ring-1 focus:ring-emerald-500"></textarea>
                     </div>
 
                     <!-- Extra Notes -->
                     <div class="pt-2 border-t border-slate-800">
-                        <label class="block font-medium text-slate-300 text-sm mb-1">Catatan Tambahan / Key Takeaways (opsional)</label>
-                        <textarea id="ans-extra" rows="2" placeholder="Catatan psikologis atau aturan tambahan..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-slate-100 focus:outline-none focus:border-emerald-500"></textarea>
+                        <label class="block font-medium text-slate-300 text-xs sm:text-sm mb-1">Catatan Tambahan / Key Takeaways (opsional)</label>
+                        <textarea id="ans-extra" rows="2" placeholder="Catatan psikologis atau aturan tambahan..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs sm:text-sm text-slate-100 focus:outline-none focus:border-emerald-500"></textarea>
                     </div>
                 </div>
             </div>
 
             <div id="actions-bar" class="hidden flex flex-wrap items-center justify-between gap-4 pt-2">
-                <button type="button" onclick="resetForm()" class="px-4 py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 text-sm font-medium transition">
+                <button type="button" onclick="resetForm()" class="px-4 py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 text-xs sm:text-sm font-medium transition">
                     <i class="fa-solid fa-rotate-left mr-1"></i> Reset Form
                 </button>
 
                 <div class="flex items-center gap-3">
-                    <button type="button" onclick="saveToJournal()" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-semibold text-sm transition flex items-center gap-2 shadow-md">
+                    <button type="button" onclick="saveToJournal()" class="px-4 sm:px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-semibold text-xs sm:text-sm transition flex items-center gap-2 shadow-md">
                         <i class="fa-solid fa-floppy-disk text-emerald-400"></i> Simpan ke Journal
                     </button>
-                    <button type="button" onclick="generatePDF()" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm shadow-lg shadow-emerald-600/30 transition flex items-center gap-2">
+                    <button type="button" onclick="generatePDF()" class="px-5 sm:px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-emerald-600/30 transition flex items-center gap-2">
                         <i class="fa-solid fa-file-pdf"></i> Simpan / Download PDF
                     </button>
                 </div>
@@ -303,13 +319,13 @@
         </div>
 
         <div id="view-history" class="hidden animate-fade-in space-y-6">
-            <div class="bg-cardbg border border-cardborder rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
+            <div class="bg-cardbg border border-cardborder rounded-2xl p-4 sm:p-6 shadow-xl space-y-4">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
                     <div>
-                        <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <h2 class="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
                             <i class="fa-solid fa-box-archive text-emerald-400"></i> Riwayat Review Transaksi
                         </h2>
-                        <p class="text-xs text-slate-400 mt-1">Daftar semua jurnal yang tersimpan di browser Anda</p>
+                        <p class="text-xs text-slate-400 mt-0.5">Daftar semua jurnal yang tersimpan di browser Anda</p>
                     </div>
                     <div class="flex items-center gap-2">
                         <label class="cursor-pointer px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-medium transition flex items-center gap-1.5">
@@ -357,70 +373,67 @@
     <div id="pdf-wrapper">
         <div id="pdf-render-area">
             <!-- Header section inside PDF -->
-            <div style="border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: flex-end;">
+            <div style="border-bottom: 2px solid #0f172a; padding-bottom: 10px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: flex-end;">
                 <div>
-                    <h1 style="font-size: 20pt; font-weight: 800; color: #0f172a; margin: 0;">TRADE EXECUTION REVIEW</h1>
-                    <p style="font-size: 10pt; color: #64748b; margin: 4px 0 0 0;">Trading Performance & Execution Analysis Journal</p>
+                    <h1 style="font-size: 18pt; font-weight: 800; color: #0f172a; margin: 0; line-height: 1.2;">TRADE EXECUTION REVIEW</h1>
+                    <p style="font-size: 9.5pt; color: #64748b; margin: 4px 0 0 0;">Trading Performance & Execution Analysis Journal</p>
                 </div>
                 <div style="text-align: right;">
-                    <span id="pdf-outcome-badge" style="display: inline-block; padding: 4px 12px; font-weight: 700; border-radius: 4px; font-size: 11pt; text-transform: uppercase;">
+                    <span id="pdf-outcome-badge" style="display: inline-block; padding: 4px 12px; font-weight: 700; border-radius: 4px; font-size: 10pt; text-transform: uppercase;">
                         WIN
                     </span>
                 </div>
             </div>
 
             <!-- Meta details grid -->
-            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 15px; font-size: 9.5pt;">
-                <div><strong>Tanggal:</strong> <span id="pdf-meta-date">-</span></div>
-                <div><strong>Pair:</strong> <span id="pdf-meta-pair">-</span></div>
-                <div><strong>Sesi:</strong> <span id="pdf-meta-session">-</span></div>
-                <div><strong>Risk/Reward:</strong> <span id="pdf-meta-rr">-</span></div>
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 14px; margin-bottom: 16px; display: flex; flex-wrap: wrap; justify-content: space-between; font-size: 9pt;">
+                <div style="margin-right: 8px; margin-bottom: 2px;"><strong>Tanggal:</strong> <span id="pdf-meta-date">-</span></div>
+                <div style="margin-right: 8px; margin-bottom: 2px;"><strong>Pair:</strong> <span id="pdf-meta-pair">-</span></div>
+                <div style="margin-right: 8px; margin-bottom: 2px;"><strong>Sesi:</strong> <span id="pdf-meta-session">-</span></div>
+                <div style="margin-bottom: 2px;"><strong>Risk/Reward:</strong> <span id="pdf-meta-rr">-</span></div>
             </div>
 
             <!-- Main Question & Branching Decision -->
-            <div class="pdf-page-block" style="background-color: #f1f5f9; border-left: 4px solid #0284c7; padding: 12px 16px; margin-bottom: 20px; border-radius: 4px;">
-                <div style="font-size: 9pt; font-weight: 700; color: #0284c7; text-transform: uppercase;" id="pdf-section-title">Bagian 1: Win</div>
-                <div style="font-size: 11pt; font-weight: 700; color: #0f172a; margin-top: 4px;" id="pdf-branch-q-en">Question Title</div>
-                <div style="font-size: 9.5pt; color: #475569; font-style: italic;" id="pdf-branch-q-id">Sub question</div>
-                <div style="margin-top: 8px; font-size: 10pt; font-weight: 700; color: #0f172a;">
+            <div class="pdf-page-block" style="background-color: #f1f5f9; border-left: 4px solid #0284c7; padding: 10px 14px; margin-bottom: 16px; border-radius: 4px;">
+                <div style="font-size: 8.5pt; font-weight: 700; color: #0284c7; text-transform: uppercase;" id="pdf-section-title">Bagian 1: Win</div>
+                <div style="font-size: 10.5pt; font-weight: 700; color: #0f172a; margin-top: 2px;" id="pdf-branch-q-en">Question Title</div>
+                <div style="font-size: 9pt; color: #475569; font-style: italic;" id="pdf-branch-q-id">Sub question</div>
+                <div style="margin-top: 6px; font-size: 9.5pt; font-weight: 700; color: #0f172a;">
                     Jawaban Pilihan: <span id="pdf-branch-answer" style="color: #0369a1; text-decoration: underline;">YES</span>
                 </div>
             </div>
 
-            <!-- Detailed Answers Blocks (Each wrapped in avoid page break) -->
-            <div id="pdf-q1-container" class="pdf-page-block" style="margin-bottom: 18px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 6px;">
-                <div style="font-size: 10pt; font-weight: 700; color: #0f172a;" id="pdf-q1-en">Question 1</div>
-                <div style="font-size: 8.5pt; color: #64748b; margin-bottom: 8px;" id="pdf-q1-id">Pertanyaan 1</div>
+            <!-- Detailed Answers Blocks -->
+            <div id="pdf-q1-container" class="pdf-page-block" style="margin-bottom: 14px; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 6px; background-color: #ffffff;">
+                <div style="font-size: 9.5pt; font-weight: 700; color: #0f172a;" id="pdf-q1-en">Question 1</div>
+                <div style="font-size: 8pt; color: #64748b; margin-bottom: 6px;" id="pdf-q1-id">Pertanyaan 1</div>
                 <div class="pdf-text-content" id="pdf-a1-text">-</div>
             </div>
 
-            <div id="pdf-q2-container" class="pdf-page-block" style="margin-bottom: 18px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 6px;">
-                <div style="font-size: 10pt; font-weight: 700; color: #0f172a;" id="pdf-q2-en">Question 2</div>
-                <div style="font-size: 8.5pt; color: #64748b; margin-bottom: 8px;" id="pdf-q2-id">Pertanyaan 2</div>
+            <div id="pdf-q2-container" class="pdf-page-block" style="margin-bottom: 14px; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 6px; background-color: #ffffff;">
+                <div style="font-size: 9.5pt; font-weight: 700; color: #0f172a;" id="pdf-q2-en">Question 2</div>
+                <div style="font-size: 8pt; color: #64748b; margin-bottom: 6px;" id="pdf-q2-id">Pertanyaan 2</div>
                 <div class="pdf-text-content" id="pdf-a2-text">-</div>
             </div>
 
-            <div id="pdf-q3-container" class="pdf-page-block" style="margin-bottom: 18px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 6px;">
-                <div style="font-size: 10pt; font-weight: 700; color: #0f172a;" id="pdf-q3-en">Question 3</div>
-                <div style="font-size: 8.5pt; color: #64748b; margin-bottom: 8px;" id="pdf-q3-id">Pertanyaan 3</div>
+            <div id="pdf-q3-container" class="pdf-page-block" style="margin-bottom: 14px; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 6px; background-color: #ffffff;">
+                <div style="font-size: 9.5pt; font-weight: 700; color: #0f172a;" id="pdf-q3-en">Question 3</div>
+                <div style="font-size: 8pt; color: #64748b; margin-bottom: 6px;" id="pdf-q3-id">Pertanyaan 3</div>
                 <div class="pdf-text-content" id="pdf-a3-text">-</div>
             </div>
+
             <!-- Extra -->
-            <div id="pdf-extra-container" class="pdf-page-block" style="margin-bottom: 18px; padding: 12px; border: 1px dashed #cbd5e1; border-radius: 6px; background-color: #fafafa;">
-                <div style="font-size: 9.5pt; font-weight: 700; color: #334155; margin-bottom: 6px;">Catatan Tambahan / Takeaways:</div>
+            <div id="pdf-extra-container" class="pdf-page-block" style="margin-bottom: 14px; padding: 10px 12px; border: 1px dashed #cbd5e1; border-radius: 6px; background-color: #fafafa;">
+                <div style="font-size: 9pt; font-weight: 700; color: #334155; margin-bottom: 4px;">Catatan Tambahan / Takeaways:</div>
                 <div class="pdf-text-content" id="pdf-aextra-text">-</div>
             </div>
 
-            <!-- Screenshot in PDF - Fixed standard layout for html2canvas compatibility -->
-            <div id="pdf-image-container" class="pdf-page-block" style="margin-top: 20px; display: none; text-align: center; width: 100%;">
-                <div style="font-size: 9.5pt; font-weight: 700; color: #475569; margin-bottom: 8px; text-align: left;">Chart Screenshot:</div>
-                <div style="width: 100%; text-align: center; overflow: hidden; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px; background-color: #f8fafc;">
-                    <img id="pdf-chart-img" src="" style="display: block; width: 100%; max-width: 100%; height: auto; max-height: 450px; margin: 0 auto; border-radius: 4px;">
-                </div>
+            <div id="pdf-images-container" style="margin-top: 16px;">
+                <!-- Multiple chart images injected dynamically here with object-fit contain -->
             </div>
 
             <!-- Footer in PDF -->
-            <div style="margin-top: 30px; border-t: 1px solid #e2e8f0; padding-top: 10px; font-size: 8pt; color: #94a3b8; text-align: justify; display: flex; justify-content: space-between;">
+            <div style="margin-top: 24px; border-top: 1px solid #e2e8f0; padding-top: 8px; font-size: 7.5pt; color: #94a3b8; display: flex; justify-content: space-between;">
                 <span>Generated via Trade Execution Review Tool</span>
                 <span>Page Review PDF</span>
             </div>
@@ -430,11 +443,22 @@
     <!-- Custom Toast Notification -->
     <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-    <!-- Custom Modal for Alerts/Confirmations -->
-    <div id="modal-overlay" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-200">
-        <div class="bg-cardbg border border-cardborder rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-200" id="modal-box">
-            <h3 id="modal-title" class="text-lg font-bold text-white mb-2">Konfirmasi</h3>
-            <p id="modal-msg" class="text-sm text-slate-300 mb-6">Apakah Anda yakin?</p>
+    <!-- Image Modal Lightbox -->
+    <div id="image-modal-overlay" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-200 p-4" onclick="closeImageModal()">
+        <div class="relative max-w-5xl w-full max-h-[90vh] flex flex-col items-center justify-center" onclick="event.stopPropagation()">
+            <button onclick="closeImageModal()" class="absolute -top-10 right-0 text-slate-300 hover:text-white text-lg font-bold bg-slate-800/80 p-2 rounded-full w-9 h-9 flex items-center justify-center border border-slate-700">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <img id="image-modal-img" src="" alt="Enlarged Chart" class="max-w-full max-h-[85vh] object-contain rounded-xl border border-slate-700 shadow-2xl">
+            <p id="image-modal-caption" class="text-xs text-slate-400 mt-2 text-center truncate max-w-md"></p>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="modal-overlay" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-200 p-4">
+        <div class="bg-cardbg border border-cardborder rounded-2xl p-6 max-w-md w-full shadow-2xl transform scale-95 transition-transform duration-200" id="modal-box">
+            <h3 id="modal-title" class="text-base sm:text-lg font-bold text-white mb-2">Konfirmasi</h3>
+            <p id="modal-msg" class="text-xs sm:text-sm text-slate-300 mb-6">Apakah Anda yakin?</p>
             <div class="flex justify-end gap-3" id="modal-actions">
                 <button onclick="closeModal()" class="px-4 py-2 text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 rounded-lg">Batal</button>
                 <button id="modal-confirm-btn" class="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg">Ya, Lanjutkan</button>
@@ -442,13 +466,12 @@
         </div>
     </div>
 
-    <!-- Footer -->
     <footer class="border-t border-slate-800/80 py-4 text-center text-xs text-slate-500">
         Trade Review Journal &bull; Ready for GitHub Pages
     </footer>
 
     <script>
-        // Exact questions matrix matching the user's requirements
+        // Exact questions matrix matching trading framework requirements
         const REVIEW_SCHEMA = {
             WIN: {
                 titleEN: "Win (Profit)",
@@ -560,25 +583,22 @@
             }
         };
 
-        // Current Form State Variables
+        // Application state variables
         let state = {
             outcome: null, // WIN, LOSS, NOTRADE
             branch: null,  // YES, NO
-            chartImageData: null,
+            chartImages: [], // Array of { id, data, name }
             currentHistoryFilter: 'ALL'
         };
 
-        // Initialize App on DOM Load
+        // Initialize state on DOM load
         window.addEventListener('DOMContentLoaded', () => {
-            // Set current date/time in form
             const now = new Date();
             now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
             const dateElem = document.getElementById('meta-date');
             if (dateElem) {
                 dateElem.value = now.toISOString().slice(0, 16);
             }
-
-            // Update badge count
             updateHistoryCount();
         });
 
@@ -604,9 +624,8 @@
 
         function selectOutcome(outcomeType) {
             state.outcome = outcomeType;
-            state.branch = null; // Reset branch
+            state.branch = null;
 
-            // Update outcome buttons styling
             document.querySelectorAll('.outcome-btn').forEach(btn => {
                 btn.classList.remove('border-emerald-500', 'border-rose-500', 'border-amber-500', 'bg-slate-800/80');
                 btn.classList.add('border-slate-800');
@@ -621,23 +640,19 @@
                 selectedBtn.querySelector('.check-icon').classList.remove('opacity-0');
             }
 
-            // Show dynamic section
             const container = document.getElementById('dynamic-questions-container');
             container.classList.remove('hidden');
             
-            // Render Branch Question
             const schema = REVIEW_SCHEMA[outcomeType];
             document.getElementById('section-badge').innerText = schema.titleID;
             document.getElementById('branch-q-en').innerText = schema.branchQuestionEN;
             document.getElementById('branch-q-id').innerText = schema.branchQuestionID;
 
-            // Reset Branch Buttons
             document.querySelectorAll('.branch-btn').forEach(b => {
                 b.classList.remove('bg-emerald-600', 'bg-rose-600', 'text-white', 'border-emerald-500', 'border-rose-500');
                 b.classList.add('bg-slate-900');
             });
 
-            // Hide text questions until branch selected
             document.getElementById('text-questions-card').classList.add('hidden');
             document.getElementById('actions-bar').classList.add('hidden');
         }
@@ -658,7 +673,6 @@
                 btnNo.classList.add('bg-rose-600', 'text-white', 'border-rose-500');
             }
 
-            // Populate Questions
             const qList = REVIEW_SCHEMA[state.outcome].branches[branchVal];
             
             document.getElementById('q1-en').innerText = `1. ${qList[0].en}`;
@@ -670,37 +684,107 @@
             document.getElementById('q3-en').innerText = `3. ${qList[2].en}`;
             document.getElementById('q3-id').innerText = qList[2].id;
 
-            // Display text question block and actions
             document.getElementById('text-questions-card').classList.remove('hidden');
             document.getElementById('actions-bar').classList.remove('hidden');
         }
 
         function handleImageUpload(e) {
-            const file = e.target.files[0];
-            if (!file) return;
+            const files = Array.from(e.target.files);
+            if (!files || files.length === 0) return;
 
-            if (file.size > 4 * 1024 * 1024) { // 4MB limit for localstorage
-                showToast("Ukuran gambar maksimal 4MB", "error");
+            let loadedCount = 0;
+            const totalFiles = files.length;
+
+            files.forEach(file => {
+                if (file.size > 5 * 1024 * 1024) {
+                    showToast(`Gambar ${file.name} melebihi 5MB dan dilewati.`, "error");
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    state.chartImages.push({
+                        id: 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                        name: file.name,
+                        data: evt.target.result
+                    });
+                    
+                    loadedCount++;
+                    if (loadedCount === totalFiles) {
+                        renderImageGallery();
+                        showToast(`${totalFiles} gambar berhasil ditambahkan.`, "success");
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+
+            // Reset file input so the same files can be chosen again if deleted
+            e.target.value = "";
+        }
+
+        function removeSingleImage(imgId) {
+            state.chartImages = state.chartImages.filter(img => img.id !== imgId);
+            renderImageGallery();
+        }
+
+        function clearAllImages() {
+            state.chartImages = [];
+            renderImageGallery();
+        }
+
+        function renderImageGallery() {
+            const previewContainer = document.getElementById('image-gallery-preview');
+            const label = document.getElementById('images-count-label');
+            const clearBtn = document.getElementById('clear-all-imgs-btn');
+
+            label.innerText = `${state.chartImages.length} gambar dipilih`;
+
+            if (state.chartImages.length === 0) {
+                previewContainer.classList.add('hidden');
+                clearBtn.classList.add('hidden');
+                previewContainer.innerHTML = '';
                 return;
             }
 
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                state.chartImageData = evt.target.result;
-                document.getElementById('image-filename').innerText = file.name;
-                document.getElementById('image-preview').src = evt.target.result;
-                document.getElementById('image-preview-container').classList.remove('hidden');
-                document.getElementById('remove-img-btn').classList.remove('hidden');
-            };
-            reader.readAsDataURL(file);
+            previewContainer.classList.remove('hidden');
+            clearBtn.classList.remove('hidden');
+
+            previewContainer.innerHTML = state.chartImages.map((img, index) => `
+                <div class="group relative rounded-xl border border-slate-700 bg-slate-950/80 p-1.5 flex flex-col items-center overflow-hidden">
+                    <div class="w-full h-32 flex items-center justify-center bg-slate-900 rounded-lg overflow-hidden cursor-pointer" onclick="openImageModal('${img.data}', '${escapeHtml(img.name)}')">
+                        <!-- Correct object-contain scaling to prevent any clipping -->
+                        <img src="${img.data}" alt="${escapeHtml(img.name)}" class="w-full h-full object-contain hover:scale-105 transition-transform duration-200">
+                    </div>
+                    <div class="w-full mt-1.5 px-1 flex items-center justify-between text-[10px] text-slate-400">
+                        <span class="truncate max-w-[100px]" title="${escapeHtml(img.name)}">Gambar #${index + 1}</span>
+                        <button type="button" onclick="removeSingleImage('${img.id}')" class="text-red-400 hover:text-red-300 p-1 rounded hover:bg-slate-800" title="Hapus gambar">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
         }
 
-        function removeImage() {
-            state.chartImageData = null;
-            document.getElementById('chart-image-input').value = "";
-            document.getElementById('image-filename').innerText = "Belum ada gambar terpilih";
-            document.getElementById('image-preview-container').classList.add('hidden');
-            document.getElementById('remove-img-btn').classList.add('hidden');
+        function escapeHtml(str) {
+            return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function openImageModal(src, caption = '') {
+            const modal = document.getElementById('image-modal-overlay');
+            const img = document.getElementById('image-modal-img');
+            const cap = document.getElementById('image-modal-caption');
+
+            img.src = src;
+            cap.innerText = caption;
+            
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.classList.remove('opacity-0'), 10);
+        }
+
+        function closeImageModal() {
+            const modal = document.getElementById('image-modal-overlay');
+            modal.classList.add('opacity-0');
+            setTimeout(() => modal.classList.add('hidden'), 200);
         }
 
         function getFormData() {
@@ -732,37 +816,8 @@
                     { en: qList[2].en, id: qList[2].id, ans: ans3 }
                 ],
                 extraNote: extra,
-                image: state.chartImageData
+                images: state.chartImages.map(img => img.data) // Array of base64 image strings
             };
-        }
-
-        function saveToJournal() {
-            if (!validateForm()) return;
-
-            const entry = getFormData();
-            const journal = getJournalFromStorage();
-            journal.unshift(entry); // add to top
-            
-            try {
-                localStorage.setItem('tr_journal_data', JSON.stringify(journal));
-                updateHistoryCount();
-                showToast("Review berhasil disimpan ke Journal!", "success");
-            } catch(e) {
-                showToast("Gagal menyimpan. Memori lokal penuh (coba hapus/kecilkan gambar).", "error");
-            }
-        }
-
-        function getJournalFromStorage() {
-            const data = localStorage.getItem('tr_journal_data');
-            return data ? JSON.parse(data) : [];
-        }
-
-        function updateHistoryCount() {
-            const journal = getJournalFromStorage();
-            const badge = document.getElementById('history-count-badge');
-            if (badge) {
-                badge.innerText = journal.length;
-            }
         }
 
         function validateForm() {
@@ -777,11 +832,38 @@
             return true;
         }
 
+        function saveToJournal() {
+            if (!validateForm()) return;
+
+            const entry = getFormData();
+            const journal = getJournalFromStorage();
+            journal.unshift(entry);
+            
+            try {
+                localStorage.setItem('tr_journal_data', JSON.stringify(journal));
+                updateHistoryCount();
+                showToast("Review berhasil disimpan ke Journal!", "success");
+            } catch(e) {
+                showToast("Gagal menyimpan ke browser. Ukuran memori lokal penuh (coba hapus beberapa gambar).", "error");
+            }
+        }
+
+        function getJournalFromStorage() {
+            const data = localStorage.getItem('tr_journal_data');
+            return data ? JSON.parse(data) : [];
+        }
+
+        function updateHistoryCount() {
+            const journal = getJournalFromStorage();
+            const badge = document.getElementById('history-count-badge');
+            if (badge) badge.innerText = journal.length;
+        }
+
         function generatePDF(dataOverride = null) {
             const data = dataOverride || (validateForm() ? getFormData() : null);
             if (!data) return;
 
-            // Fill PDF DOM template
+            // Populate text elements in PDF template
             document.getElementById('pdf-meta-date').innerText = new Date(data.meta.date).toLocaleString('id-ID');
             document.getElementById('pdf-meta-pair').innerText = data.meta.pair;
             document.getElementById('pdf-meta-session').innerText = data.meta.session;
@@ -805,7 +887,6 @@
             document.getElementById('pdf-branch-q-id').innerText = data.branchQ_ID;
             document.getElementById('pdf-branch-answer').innerText = data.branch === 'YES' ? 'YES / YA' : 'NO / TIDAK';
 
-            // Questions & Answers Mapping
             document.getElementById('pdf-q1-en').innerText = `1. ${data.questions[0].en}`;
             document.getElementById('pdf-q1-id').innerText = data.questions[0].id;
             document.getElementById('pdf-a1-text').innerText = data.questions[0].ans || '(Tidak ada jawaban)';
@@ -818,7 +899,6 @@
             document.getElementById('pdf-q3-id').innerText = data.questions[2].id;
             document.getElementById('pdf-a3-text').innerText = data.questions[2].ans || '(Tidak ada jawaban)';
 
-            // Extra
             const extraContainer = document.getElementById('pdf-extra-container');
             if (data.extraNote) {
                 extraContainer.style.display = 'block';
@@ -827,135 +907,111 @@
                 extraContainer.style.display = 'none';
             }
 
-            // Image
-            const imgContainer = document.getElementById('pdf-image-container');
-            if (data.image) {
-                imgContainer.style.display = 'block';
-                document.getElementById('pdf-chart-img').src = data.image;
-            } else {
-                imgContainer.style.display = 'none';
+            // Normalize image array (supports both single string legacy and array format)
+            let imageList = [];
+            if (Array.isArray(data.images) && data.images.length > 0) {
+                imageList = data.images;
+            } else if (data.image) {
+                imageList = [data.image];
+            }
+
+            // Populate PDF multi-images container
+            const pdfImagesContainer = document.getElementById('pdf-images-container');
+            pdfImagesContainer.innerHTML = '';
+
+            if (imageList.length > 0) {
+                pdfImagesContainer.innerHTML = `
+                    <div class="pdf-page-block" style="margin-top: 16px;">
+                        <div style="font-size: 9.5pt; font-weight: 700; color: #334155; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">
+                            Lampiran Chart Screenshot (${imageList.length} Gambar):
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 14px; width: 100%;">
+                            ${imageList.map((imgSrc, idx) => `
+                                <div style="width: 100%; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px; background-color: #f8fafc; text-align: center; box-sizing: border-box; page-break-inside: avoid;">
+                                    <div style="font-size: 8pt; color: #64748b; text-align: left; margin-bottom: 4px; font-weight: 600;">Chart #${idx + 1}</div>
+                                    <!-- Full aspect ratio display with max-width 100% and height auto -->
+                                    <img src="${imgSrc}" class="pdf-chart-img-item" style="max-width: 100%; width: auto; max-height: 480px; display: block; margin: 0 auto; object-fit: contain; border-radius: 4px;">
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
             }
 
             showToast("Menyiapkan dokumen PDF...", "info");
 
-            const wrapper = document.getElementById('pdf-wrapper');
-            const element = document.getElementById('pdf-render-area');
-
-            // Temporarily move wrapper to top-left of window (0,0) so html2canvas renders the complete width
-            wrapper.style.left = '0px';
-            wrapper.style.top = '0px';
-            wrapper.style.opacity = '1';
-
-            const cleanPair = data.meta.pair.replace(/[^a-zA-Z0-9]/g, '_');
-            const cleanDate = new Date(data.meta.date).toISOString().slice(0,10);
-            const fileName = `Trade_Review_${cleanPair}_${cleanDate}.pdf`;
-
-            const opt = {
-                margin:       [10, 10, 10, 10],
-                filename:     fileName,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { 
-                    scale: 2, 
-                    useCORS: true, 
-                    logging: false, 
-                    scrollX: 0, 
-                    scrollY: 0,
-                    x: 0,
-                    y: 0,
-                    width: 800,
-                    windowWidth: 800
-                },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
-            };
-
-            // Allow DOM to finish rendering updated image dimensions before html2canvas capture
-            setTimeout(() => {
-                html2pdf().set(opt).from(element).save().then(() => {
-                    wrapper.style.left = '-9999px';
-                    wrapper.style.opacity = '0';
-                    showToast("PDF Berhasil Di-download!", "success");
-                }).catch(err => {
-                    wrapper.style.left = '-9999px';
-                    wrapper.style.opacity = '0';
-                    console.error("Export PDF error:", err);
-                    showToast("Gagal membuat PDF. Coba kembali.", "error");
+            // Wait for all image elements inside PDF area to load completely before capturing canvas
+            const pdfImgElems = Array.from(document.querySelectorAll('.pdf-chart-img-item'));
+            const imagePromises = pdfImgElems.map(img => {
+                return new Promise(resolve => {
+                    if (img.complete) resolve();
+                    else {
+                        img.onload = () => resolve();
+                        img.onerror = () => resolve();
+                    }
                 });
-            }, 250);
-        }
-
-        function renderHistoryList() {
-            const container = document.getElementById('history-list-container');
-            if (!container) return;
-
-            const journal = getJournalFromStorage();
-            const searchElem = document.getElementById('history-search');
-            const searchTerm = searchElem ? searchElem.value.toLowerCase() : '';
-
-            const filtered = journal.filter(item => {
-                const matchesFilter = state.currentHistoryFilter === 'ALL' || item.outcome === state.currentHistoryFilter;
-                const matchesSearch = item.meta.pair.toLowerCase().includes(searchTerm) || 
-                                      (item.extraNote && item.extraNote.toLowerCase().includes(searchTerm)) ||
-                                      item.questions.some(q => q.ans && q.ans.toLowerCase().includes(searchTerm));
-                return matchesFilter && matchesSearch;
             });
 
-            if (filtered.length === 0) {
-                container.innerHTML = `
-                    <div class="bg-cardbg border border-cardborder rounded-2xl p-8 text-center text-slate-500">
-                        <i class="fa-solid fa-folder-open text-3xl mb-2 text-slate-600"></i>
-                        <p class="text-sm">Belum ada riwayat review ${state.currentHistoryFilter !== 'ALL' ? 'dengan filter ini' : ''}.</p>
-                    </div>
-                `;
-                return;
-            }
+            Promise.all(imagePromises).then(() => {
+                const wrapper = document.getElementById('pdf-wrapper');
+                const element = document.getElementById('pdf-render-area');
 
-            container.innerHTML = filtered.map(item => {
-                const dateStr = new Date(item.meta.date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
-                const outcomeClass = item.outcome === 'WIN' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
-                                     item.outcome === 'LOSS' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' :
-                                     'bg-amber-500/10 text-amber-400 border-amber-500/30';
-                
-                return `
-                    <div class="bg-cardbg border border-cardborder rounded-xl p-5 hover:border-slate-700 transition space-y-3">
-                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
-                            <div class="flex items-center gap-3">
-                                <span class="px-3 py-1 rounded-md border text-xs font-bold uppercase tracking-wide ${outcomeClass}">
-                                    ${item.outcome}
-                                </span>
-                                <h3 class="font-bold text-white text-base">${item.meta.pair}</h3>
-                                <span class="text-xs text-slate-400"><i class="fa-regular fa-clock mr-1"></i>${dateStr}</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <button onclick='downloadPDFFromHistory("${item.id}")' class="px-3 py-1.5 rounded-lg bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 border border-emerald-500/30 text-xs font-medium transition flex items-center gap-1">
-                                    <i class="fa-solid fa-file-pdf"></i> Download PDF
-                                </button>
-                                <button onclick='deleteJournalEntry("${item.id}")' class="p-1.5 text-slate-400 hover:text-rose-400 text-xs transition">
-                                    <i class="fa-solid fa-trash"></i>
-                                </button>
-                            </div>
-                        </div>
+                const savedScrollX = window.scrollX || window.pageXOffset;
+                const savedScrollY = window.scrollY || window.pageYOffset;
 
-                        <div class="text-xs text-slate-300 space-y-1">
-                            <p><span class="text-slate-500">Sesi:</span> ${item.meta.session} &bull; <span class="text-slate-500">RR:</span> ${item.meta.rr}</p>
-                            <p><span class="text-slate-500">Keputusan Evaluasi:</span> Jawaban (${item.branch}) untuk "${item.branchQ_ID}"</p>
-                        </div>
+                window.scrollTo(0, 0);
 
-                        ${item.extraNote ? `
-                            <div class="bg-slate-900/80 rounded-lg p-2.5 text-xs text-slate-300 italic border border-slate-800">
-                                "${item.extraNote}"
-                            </div>
-                        ` : ''}
-                    </div>
-                `;
-            }).join('');
+                wrapper.style.position = 'fixed';
+                wrapper.style.top = '0';
+                wrapper.style.left = '0';
+                wrapper.style.zIndex = '99999';
+                wrapper.style.opacity = '1';
+
+                const cleanPair = data.meta.pair.replace(/[^a-zA-Z0-9]/g, '_');
+                const cleanDate = new Date(data.meta.date).toISOString().slice(0, 10);
+                const fileName = `Trade_Review_${cleanPair}_${cleanDate}.pdf`;
+
+                // Configured precisely for A4 fit without right-side cropping
+                const opt = {
+                    margin:       [8, 8, 8, 8],
+                    filename:     fileName,
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { 
+                        scale: 2, 
+                        useCORS: true, 
+                        logging: false, 
+                        scrollX: 0, 
+                        scrollY: 0, 
+                        x: 0, 
+                        y: 0,
+                        windowWidth: 720
+                    },
+                    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                    pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+                };
+
+                setTimeout(() => {
+                    html2pdf().set(opt).from(element).save().then(() => {
+                        wrapper.style.opacity = '0';
+                        wrapper.style.zIndex = '-9999';
+                        window.scrollTo(savedScrollX, savedScrollY);
+                        showToast("PDF Berhasil Di-download!", "success");
+                    }).catch(err => {
+                        wrapper.style.opacity = '0';
+                        wrapper.style.zIndex = '-9999';
+                        window.scrollTo(savedScrollX, savedScrollY);
+                        console.error("Export PDF error:", err);
+                        showToast("Gagal membuat PDF. Coba kembali.", "error");
+                    });
+                }, 200);
+            });
         }
 
         function setHistoryFilter(filter) {
             state.currentHistoryFilter = filter;
             document.querySelectorAll('.history-filter-btn').forEach(btn => {
                 btn.classList.replace('bg-emerald-600', 'bg-slate-800');
-                btn.classList.replace('text-white', 'text-slate-300');
+                btn.classList.add('text-slate-300');
             });
             const activeBtn = document.getElementById(`filter-btn-${filter}`);
             if (activeBtn) {
@@ -965,29 +1021,118 @@
             renderHistoryList();
         }
 
-        function downloadPDFFromHistory(id) {
+        function renderHistoryList() {
+            const container = document.getElementById('history-list-container');
+            const searchQuery = (document.getElementById('history-search')?.value || '').toLowerCase();
             const journal = getJournalFromStorage();
-            const target = journal.find(item => item.id === id);
-            if (target) {
-                generatePDF(target);
+
+            const filtered = journal.filter(item => {
+                const matchesFilter = state.currentHistoryFilter === 'ALL' || item.outcome === state.currentHistoryFilter;
+                const matchesSearch = !searchQuery || 
+                    item.meta.pair.toLowerCase().includes(searchQuery) ||
+                    (item.extraNote && item.extraNote.toLowerCase().includes(searchQuery)) ||
+                    item.questions.some(q => (q.ans || '').toLowerCase().includes(searchQuery));
+                return matchesFilter && matchesSearch;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 border border-dashed border-slate-800 rounded-2xl">
+                        <i class="fa-solid fa-folder-open text-3xl text-slate-600 mb-3 block"></i>
+                        <p class="text-sm text-slate-400 font-medium">Belum ada riwayat jurnal yang cocok.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(item => {
+                const outcomeColor = item.outcome === 'WIN' ? 'border-emerald-500/40 text-emerald-400 bg-emerald-500/10' :
+                                     item.outcome === 'LOSS' ? 'border-rose-500/40 text-rose-400 bg-rose-500/10' :
+                                     'border-amber-500/40 text-amber-400 bg-amber-500/10';
+
+                let imgList = [];
+                if (Array.isArray(item.images) && item.images.length > 0) {
+                    imgList = item.images;
+                } else if (item.image) {
+                    imgList = [item.image];
+                }
+
+                return `
+                    <div class="bg-slate-900/90 border border-slate-800 hover:border-slate-700 rounded-2xl p-4 sm:p-5 shadow-lg transition-all space-y-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+                            <div class="flex items-center gap-3">
+                                <span class="px-2.5 py-1 rounded-lg text-xs font-bold border ${outcomeColor}">
+                                    ${item.outcome}
+                                </span>
+                                <div>
+                                    <h4 class="font-bold text-slate-100 text-sm sm:text-base uppercase tracking-wider">${escapeHtml(item.meta.pair)}</h4>
+                                    <p class="text-[11px] text-slate-400">${new Date(item.meta.date).toLocaleString('id-ID')} &bull; Sesi ${escapeHtml(item.meta.session)} &bull; RR: ${escapeHtml(item.meta.rr)}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="downloadHistoryPDF('${item.id}')" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium transition flex items-center gap-1.5">
+                                    <i class="fa-solid fa-file-pdf text-emerald-400"></i> PDF
+                                </button>
+                                <button onclick="deleteJournalItem('${item.id}')" class="p-1.5 rounded-lg bg-slate-800 hover:bg-red-950/50 text-slate-400 hover:text-red-400 border border-slate-700 text-xs transition">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Questions snippet -->
+                        <div class="space-y-2 text-xs text-slate-300">
+                            <div class="bg-slate-950/50 p-2.5 rounded-xl border border-slate-800/80">
+                                <p class="text-sky-400 font-semibold mb-1">${escapeHtml(item.branchQ_ID)}: <span class="text-slate-100 uppercase underline">${item.branch}</span></p>
+                            </div>
+                            ${item.questions.map((q, idx) => `
+                                <div class="pl-2 border-l-2 border-slate-700">
+                                    <p class="text-[11px] text-slate-400 italic">${idx + 1}. ${escapeHtml(q.id)}</p>
+                                    <p class="text-xs text-slate-200 font-medium">${escapeHtml(q.ans || '(Tidak ada jawaban)')}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        <!-- Attachments preview -->
+                        ${imgList.length > 0 ? `
+                            <div class="pt-2 border-t border-slate-800/80">
+                                <p class="text-[11px] text-slate-400 mb-2 font-medium"><i class="fa-solid fa-paperclip me-1 text-emerald-400"></i> Chart Screenshot (${imgList.length}):</p>
+                                <div class="flex items-center gap-2 overflow-x-auto pb-1">
+                                    ${imgList.map((src, i) => `
+                                        <div class="w-20 h-16 rounded-lg bg-slate-950 border border-slate-800 overflow-hidden shrink-0 cursor-pointer" onclick="openImageModal('${src}', '${escapeHtml(item.meta.pair)} Chart #${i + 1}')">
+                                            <img src="${src}" class="w-full h-full object-contain hover:scale-105 transition-transform duration-150">
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function downloadHistoryPDF(id) {
+            const journal = getJournalFromStorage();
+            const item = journal.find(x => x.id === id);
+            if (item) {
+                generatePDF(item);
             }
         }
 
-        function deleteJournalEntry(id) {
-            showConfirmModal("Hapus Entry", "Apakah Anda yakin ingin menghapus catatan review ini dari memori browser?", () => {
+        function deleteJournalItem(id) {
+            showConfirmModal("Hapus Journal", "Apakah Anda yakin ingin menghapus catatan review ini?", () => {
                 let journal = getJournalFromStorage();
-                journal = journal.filter(item => item.id !== id);
+                journal = journal.filter(x => x.id !== id);
                 localStorage.setItem('tr_journal_data', JSON.stringify(journal));
                 updateHistoryCount();
                 renderHistoryList();
-                showToast("Entry dihapus.", "info");
+                showToast("Catatan jurnal berhasil dihapus.", "info");
             });
         }
 
         function resetForm() {
             state.outcome = null;
             state.branch = null;
-            removeImage();
+            clearAllImages();
 
             document.querySelectorAll('.outcome-btn').forEach(btn => {
                 btn.classList.remove('border-emerald-500', 'border-rose-500', 'border-amber-500', 'bg-slate-800/80');
