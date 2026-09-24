@@ -134,7 +134,6 @@
             </div>
 
             <form id="tradeForm" onsubmit="handleFormSubmit(event)" class="space-y-6">
-                <!-- Trade Details Meta Info -->
                 <div class="glass-panel p-6 rounded-2xl border border-brand-border space-y-4">
                     <h3 class="text-sm font-semibold uppercase tracking-wider text-blue-400 flex items-center gap-2">
                         <i class="fa-solid fa-circle-info"></i> Info Transaksi
@@ -163,7 +162,6 @@
                     </div>
                 </div>
 
-                <!-- MAIN QUESTION: OUTCOME SELECTION -->
                 <div class="glass-panel p-6 rounded-2xl border border-brand-border space-y-4">
                     <div>
                         <span class="text-xs font-semibold uppercase tracking-wider text-blue-400 block mb-1">Judul Utama / Main Question</span>
@@ -265,7 +263,6 @@
                             <textarea id="q3Answer" rows="3" placeholder="Tuliskan analisis atau pandanganmu di sini..." class="w-full bg-slate-900/90 border border-brand-border rounded-xl p-3 text-sm text-gray-100 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 custom-scrollbar"></textarea>
                         </div>
 
-                        <!-- Chart Screenshot Upload or URL -->
                         <div class="space-y-3 pt-2 bg-slate-900/40 p-4 rounded-xl border border-brand-border/60">
                             <label class="block text-xs font-semibold uppercase tracking-wider text-blue-400">
                                 <i class="fa-solid fa-image mr-1"></i> Screenshot Chart (Upload File atau Pasang Link)
@@ -289,7 +286,6 @@
                             </div>
                         </div>
 
-                        <!-- Action Buttons -->
                         <div class="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-brand-border">
                             <button type="button" onclick="resetForm()" class="px-4 py-2 rounded-xl border border-brand-border text-gray-400 hover:text-white hover:bg-slate-800 text-sm font-medium transition">
                                 <i class="fa-solid fa-rotate-right mr-1"></i> Reset
@@ -476,7 +472,6 @@
 
     </main>
 
-    <!-- Detail Modal -->
     <div id="detailModal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4 z-50">
         <div class="glass-panel max-w-2xl w-full max-h-[90vh] rounded-2xl border border-brand-border flex flex-col overflow-hidden shadow-2xl fade-in">
             <!-- Modal Header -->
@@ -515,7 +510,6 @@
         </div>
     </div>
 
-    <!-- Notification Toast -->
     <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 border border-brand-border px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 text-sm text-gray-200 transform translate-y-20 opacity-0 transition-all duration-300 z-50">
         <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
         <span id="toastMsg">Notification Message</span>
