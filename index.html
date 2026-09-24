@@ -295,7 +295,10 @@
                                 <i class="fa-solid fa-rotate-right mr-1"></i> Reset
                             </button>
                             
-                            <div class="flex items-center gap-3">
+                            <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                                <button type="button" onclick="printReportFromForm()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-blue-400 hover:text-blue-300 text-sm font-medium transition flex items-center gap-1.5 border border-brand-border" title="Cetak atau Simpan PDF via Browser">
+                                    <i class="fa-solid fa-print"></i> Cetak
+                                </button>
                                 <button type="button" onclick="downloadPDFFromForm()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-400 hover:text-rose-300 text-sm font-medium transition flex items-center gap-2 border border-brand-border">
                                     <i class="fa-solid fa-file-pdf text-rose-500"></i> Download PDF
                                 </button>
@@ -495,6 +498,9 @@
             <!-- Modal Footer -->
             <div class="p-4 border-t border-brand-border bg-slate-900/60 flex flex-wrap items-center justify-between gap-2">
                 <div class="flex items-center gap-2">
+                    <button id="modalPrintBtn" onclick="" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-blue-400 border border-brand-border transition flex items-center gap-1.5" title="Cetak Langsung">
+                        <i class="fa-solid fa-print"></i> Cetak
+                    </button>
                     <button id="modalPdfBtn" onclick="" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-rose-400 border border-brand-border transition flex items-center gap-2">
                         <i class="fa-solid fa-file-pdf"></i> Download PDF
                     </button>
@@ -525,20 +531,17 @@
     </div>
 
     <script>
+        let journals = JSON.parse(localStorage.getItem('trade_reviews_data')) || [];
         let selectedOutcome = null;
         let selectedBranchAnswer = null;
         let uploadedChartBase64 = null;
-        let journals = JSON.parse(localStorage.getItem('trade_reviews_data')) || [];
 
-        /* ==================== QUESTION DATA TREE ==================== */
         const QUESTION_TREE = {
             WIN: {
-                titleEn: "Win (Profit)",
-                titleId: "Bagian 1: Win",
                 branchQuestionEn: "Is this a trade you would take again without knowing the outcome was a win?",
                 branchQuestionId: "Apakah ini jenis transaksi yang tetap akan kamu ambil tanpa tahu bahwa hasilnya bakal profit?",
                 YES: {
-                    tag: "Disciplined Win (Good Execution)",
+                    tag: "Disciplined Win",
                     questions: [
                         { en: "What would you improve with your execution on this trade?", id: "Apa yang ingin kamu tingkatkan dari eksekusimu pada transaksi ini?" },
                         { en: "How could you have managed this trade to increase the profit?", id: "Bagaimana kamu bisa mengelola transaksi ini agar bisa memperbesar profit?" },
@@ -546,7 +549,7 @@
                     ]
                 },
                 NO: {
-                    tag: "Flawed Win (Luck / Deviated Plan)",
+                    tag: "Flawed Win",
                     questions: [
                         { en: "Where did you deviate from your plan or approach and why?", id: "Di bagian mana kamu menyimpang dari rencana atau metodemu, dan mengapa?" },
                         { en: "How could this flawed win have been avoided in the future?", id: "Bagaimana profit yang bercelah/cacat ini bisa dihindari di masa depan?" },
@@ -555,8 +558,6 @@
                 }
             },
             LOSS: {
-                titleEn: "Loss (Rugi)",
-                titleId: "Bagian 2: Loss",
                 branchQuestionEn: "Is this a trade you would take again without knowing the outcome was a loss?",
                 branchQuestionId: "Apakah ini jenis transaksi yang tetap akan kamu ambil tanpa tahu bahwa hasilnya bakal rugi?",
                 YES: {
@@ -577,8 +578,6 @@
                 }
             },
             NO_TRADES: {
-                titleEn: "No Trades (Tidak Ada Transaksi)",
-                titleId: "Bagian 3: No Trades",
                 branchQuestionEn: "Were there any valid trades that you missed during the trading day?",
                 branchQuestionId: "Apakah ada transaksi yang valid yang terlewat olehmu selama hari trading tersebut?",
                 NO: {
@@ -600,33 +599,88 @@
             }
         };
 
-        function switchTab(tabId) {
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById('view-new-review').classList.add('hidden');
             document.getElementById('view-history').classList.add('hidden');
             document.getElementById('view-analytics').classList.add('hidden');
 
-            document.getElementById('nav-new-review').classList.remove('active');
-            document.getElementById('nav-history').classList.remove('active');
-            document.getElementById('nav-analytics').classList.remove('active');
+            const activeNav = document.getElementById(`nav-${tab}`);
+            if (activeNav) activeNav.classList.add('active');
 
-            document.getElementById('view-' + tabId).classList.remove('hidden');
-            document.getElementById('nav-' + tabId).classList.add('active');
+            const activeView = document.getElementById(`view-${tab}`);
+            if (activeView) activeView.classList.remove('hidden');
 
-            if (tabId === 'history') {
+            if (tab === 'history') {
                 renderHistoryList();
-            } else if (tabId === 'analytics') {
+            } else if (tab === 'analytics') {
                 renderAnalytics();
             }
         }
 
-        function handleChartFileUpload(e) {
-            const file = e.target.files[0];
+        function onOutcomeChange(outcome) {
+            selectedOutcome = outcome;
+            selectedBranchAnswer = null;
+
+            const branchContainer = document.getElementById('dynamicBranchContainer');
+            const questionsContainer = document.getElementById('questionsContainer');
+            const branchEn = document.getElementById('branchQuestionEn');
+            const branchId = document.getElementById('branchQuestionId');
+            const btnYes = document.getElementById('btnBranchYes');
+            const btnNo = document.getElementById('btnBranchNo');
+
+            branchContainer.classList.remove('hidden');
+            questionsContainer.classList.add('hidden');
+
+            btnYes.className = "flex-1 sm:flex-initial px-6 py-2.5 rounded-xl border border-brand-border bg-slate-900/80 hover:bg-blue-600 hover:text-white transition font-medium text-sm flex items-center justify-center gap-2 text-gray-300";
+            btnNo.className = "flex-1 sm:flex-initial px-6 py-2.5 rounded-xl border border-brand-border bg-slate-900/80 hover:bg-rose-600 hover:text-white transition font-medium text-sm flex items-center justify-center gap-2 text-gray-300";
+
+            if (QUESTION_TREE[outcome]) {
+                branchEn.textContent = QUESTION_TREE[outcome].branchQuestionEn;
+                branchId.textContent = QUESTION_TREE[outcome].branchQuestionId;
+            }
+        }
+
+        function onBranchAnswer(answer) {
+            selectedBranchAnswer = answer;
+            const questionsContainer = document.getElementById('questionsContainer');
+            const btnYes = document.getElementById('btnBranchYes');
+            const btnNo = document.getElementById('btnBranchNo');
+            const sectionTag = document.getElementById('sectionTag');
+
+            if (answer === 'YES') {
+                btnYes.className = "flex-1 sm:flex-initial px-6 py-2.5 rounded-xl border border-blue-500 bg-blue-600 text-white transition font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20";
+                btnNo.className = "flex-1 sm:flex-initial px-6 py-2.5 rounded-xl border border-brand-border bg-slate-900/80 text-gray-400 hover:bg-slate-800 transition font-medium text-sm flex items-center justify-center gap-2";
+            } else {
+                btnNo.className = "flex-1 sm:flex-initial px-6 py-2.5 rounded-xl border border-rose-500 bg-rose-600 text-white transition font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-rose-500/20";
+                btnYes.className = "flex-1 sm:flex-initial px-6 py-2.5 rounded-xl border border-brand-border bg-slate-900/80 text-gray-400 hover:bg-slate-800 transition font-medium text-sm flex items-center justify-center gap-2";
+            }
+
+            const branchData = QUESTION_TREE[selectedOutcome][answer];
+            if (branchData) {
+                sectionTag.textContent = `TAG: ${branchData.tag}`;
+                document.getElementById('q1LabelEn').textContent = branchData.questions[0].en;
+                document.getElementById('q1LabelId').textContent = branchData.questions[0].id;
+                document.getElementById('q2LabelEn').textContent = branchData.questions[1].en;
+                document.getElementById('q2LabelId').textContent = branchData.questions[1].id;
+                document.getElementById('q3LabelEn').textContent = branchData.questions[2].en;
+                document.getElementById('q3LabelId').textContent = branchData.questions[2].id;
+                questionsContainer.classList.remove('hidden');
+            }
+        }
+
+        function handleChartFileUpload(event) {
+            const file = event.target.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = function(evt) {
-                    uploadedChartBase64 = evt.target.result;
-                    document.getElementById('chartPreviewImg').src = uploadedChartBase64;
-                    document.getElementById('chartPreviewContainer').classList.remove('hidden');
+                reader.onload = function(e) {
+                    uploadedChartBase64 = e.target.result;
+                    const preview = document.getElementById('chartPreviewImg');
+                    const container = document.getElementById('chartPreviewContainer');
+                    if (preview && container) {
+                        preview.src = uploadedChartBase64;
+                        container.classList.remove('hidden');
+                    }
                 };
                 reader.readAsDataURL(file);
             }
@@ -634,96 +688,56 @@
 
         function removeChartImage() {
             uploadedChartBase64 = null;
-            document.getElementById('chartFileInput').value = '';
-            document.getElementById('chartPreviewImg').src = '';
-            document.getElementById('chartPreviewContainer').classList.add('hidden');
+            const fileInput = document.getElementById('chartFileInput');
+            const urlInput = document.getElementById('chartUrl');
+            const container = document.getElementById('chartPreviewContainer');
+            if (fileInput) fileInput.value = '';
+            if (urlInput) urlInput.value = '';
+            if (container) container.classList.add('hidden');
         }
 
-        function onOutcomeChange(outcome) {
-            selectedOutcome = outcome;
-            selectedBranchAnswer = null;
-
-            const btnYes = document.getElementById('btnBranchYes');
-            const btnNo = document.getElementById('btnBranchNo');
-            btnYes.className = "flex-1 sm:flex-initial px-6 py-2.5 rounded-xl border border-brand-border bg-slate-900/80 hover:bg-blue-600 hover:text-white transition font-medium text-sm flex items-center justify-center gap-2";
-            btnNo.className = "flex-1 sm:flex-initial px-6 py-2.5 rounded-xl border border-brand-border bg-slate-900/80 hover:bg-rose-600 hover:text-white transition font-medium text-sm flex items-center justify-center gap-2";
-
-            const data = QUESTION_TREE[outcome];
-            document.getElementById('sectionTag').textContent = `${data.titleEn} / ${data.titleId}`;
-            document.getElementById('branchQuestionEn').textContent = data.branchQuestionEn;
-            document.getElementById('branchQuestionId').textContent = data.branchQuestionId;
-
-            document.getElementById('dynamicBranchContainer').classList.remove('hidden');
-            document.getElementById('questionsContainer').classList.add('hidden');
-
-            document.getElementById('dynamicBranchContainer').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, "&amp;")
+                      .replace(/</g, "&lt;")
+                      .replace(/>/g, "&gt;")
+                      .replace(/"/g, "&quot;")
+                      .replace(/'/g, "&#039;");
         }
 
-        function onBranchAnswer(answer) {
-            if(!selectedOutcome) return;
-            selectedBranchAnswer = answer;
-
-            const btnYes = document.getElementById('btnBranchYes');
-            const btnNo = document.getElementById('btnBranchNo');
-
-            if(answer === 'YES') {
-                btnYes.className = "flex-1 sm:flex-initial px-6 py-2.5 rounded-xl bg-blue-600 text-white font-medium text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20";
-                btnNo.className = "flex-1 sm:flex-initial px-6 py-2.5 rounded-xl border border-brand-border bg-slate-900/80 text-gray-400 hover:text-white text-sm flex items-center justify-center gap-2";
-            } else {
-                btnNo.className = "flex-1 sm:flex-initial px-6 py-2.5 rounded-xl bg-rose-600 text-white font-medium text-sm flex items-center justify-center gap-2 shadow-lg shadow-rose-500/20";
-                btnYes.className = "flex-1 sm:flex-initial px-6 py-2.5 rounded-xl border border-brand-border bg-slate-900/80 text-gray-400 hover:text-white text-sm flex items-center justify-center gap-2";
-            }
-
-            const branchData = QUESTION_TREE[selectedOutcome][answer];
-            const qList = branchData.questions;
-
-            document.getElementById('q1LabelEn').textContent = `1. ${qList[0].en}`;
-            document.getElementById('q1LabelId').textContent = qList[0].id;
-
-            document.getElementById('q2LabelEn').textContent = `2. ${qList[1].en}`;
-            document.getElementById('q2LabelId').textContent = qList[1].id;
-
-            document.getElementById('q3LabelEn').textContent = `3. ${qList[2].en}`;
-            document.getElementById('q3LabelId').textContent = qList[2].id;
-
-            document.getElementById('questionsContainer').classList.remove('hidden');
-            document.getElementById('questionsContainer').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-
-        function handleFormSubmit(e) {
-            e.preventDefault();
-            if(!selectedOutcome || !selectedBranchAnswer) {
-                showToast('Harap pilih hasil transaksi & jalur evaluasi (Yes/No)!', 'error');
-                return;
-            }
-
+        function getFormEntry() {
+            if (!selectedOutcome || !selectedBranchAnswer) return null;
             const qList = QUESTION_TREE[selectedOutcome][selectedBranchAnswer].questions;
-            const chartImg = uploadedChartBase64 || document.getElementById('chartUrl').value;
-
-            const reviewEntry = {
-                id: 'TR-' + Date.now(),
-                date: document.getElementById('tradeDate').value,
-                pair: document.getElementById('tradePair').value.toUpperCase() || 'GENERAL',
+            return {
+                pair: (document.getElementById('tradePair').value || 'GENERAL').toUpperCase(),
+                date: document.getElementById('tradeDate').value || new Date().toISOString(),
                 direction: document.getElementById('tradeDirection').value,
                 returnVal: document.getElementById('tradeReturn').value || 'N/A',
                 outcome: selectedOutcome,
                 branchAnswer: selectedBranchAnswer,
                 tag: QUESTION_TREE[selectedOutcome][selectedBranchAnswer].tag,
-                chartUrl: chartImg,
+                chartUrl: uploadedChartBase64 || document.getElementById('chartUrl').value || '',
                 qa: [
                     { questionEn: qList[0].en, questionId: qList[0].id, answer: document.getElementById('q1Answer').value },
                     { questionEn: qList[1].en, questionId: qList[1].id, answer: document.getElementById('q2Answer').value },
                     { questionEn: qList[2].en, questionId: qList[2].id, answer: document.getElementById('q3Answer').value }
-                ],
-                timestamp: new Date().toISOString()
+                ]
             };
+        }
 
-            journals.unshift(reviewEntry);
+        function handleFormSubmit(event) {
+            event.preventDefault();
+            const entry = getFormEntry();
+            if (!entry) {
+                showToast('Harap selesaikan pertanyaan terlebih dahulu.', 'error');
+                return;
+            }
+            entry.id = 'trade_' + Date.now();
+            journals.unshift(entry);
             localStorage.setItem('trade_reviews_data', JSON.stringify(journals));
-
-            showToast('Evaluasi berhasil disimpan ke Jurnal!', 'success');
-            resetForm();
             updateBadges();
+            showToast('Jurnal evaluasi berhasil disimpan!', 'success');
+            resetForm();
             switchTab('history');
         }
 
@@ -731,374 +745,331 @@
             document.getElementById('tradeForm').reset();
             selectedOutcome = null;
             selectedBranchAnswer = null;
-            removeChartImage();
+            uploadedChartBase64 = null;
             document.getElementById('dynamicBranchContainer').classList.add('hidden');
             document.getElementById('questionsContainer').classList.add('hidden');
-            
-            const now = new Date();
-            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            document.getElementById('tradeDate').value = now.toISOString().slice(0, 16);
+            const previewContainer = document.getElementById('chartPreviewContainer');
+            if (previewContainer) previewContainer.classList.add('hidden');
         }
 
         function generateMarkdown(item) {
-            const mainQ = "Was the outcome of the trade a win or a loss? / Apakah hasil dari transaksi tersebut profit atau rugi?";
-            const outcomeText = item.outcome === 'WIN' ? 'Win (Profit)' : item.outcome === 'LOSS' ? 'Loss (Rugi)' : 'No Trades (Tidak Ada Transaksi)';
-            const branchQ = QUESTION_TREE[item.outcome] ? QUESTION_TREE[item.outcome].branchQuestionEn : '';
-            const branchQId = QUESTION_TREE[item.outcome] ? QUESTION_TREE[item.outcome].branchQuestionId : '';
-
-            let md = `# 📊 Post-Trade Evaluation: ${item.pair} (${new Date(item.date).toLocaleDateString()})\n\n`;
-            md += `- **Date/Time**: ${item.date}\n`;
-            md += `- **Direction**: ${item.direction}\n`;
-            md += `- **Return/Result**: ${item.returnVal}\n`;
-            md += `- **Execution Tag**: ${item.tag}\n`;
-            if(item.chartUrl) md += `- **Chart Screenshot**: [View Chart](${item.chartUrl.startsWith('data:') ? 'Attached Image' : item.chartUrl})\n`;
-            md += `\n---\n\n`;
-
-            md += `### 1. Main Outcome\n`;
-            md += `*${mainQ}*\n`;
-            md += `> **Result**: ${outcomeText}\n\n`;
-
-            md += `### 2. Decision Path\n`;
-            md += `*${branchQ}*\n`;
-            md += `*${branchQId}*\n`;
-            md += `> **Answer**: ${item.branchAnswer === 'YES' ? 'Yes / Ya' : 'No / Tidak'}\n\n`;
-
-            md += `### 3. Deep Dive Review\n`;
+            let md = `# Post-Trade Review: ${item.pair}\n\n`;
+            md += `- **Date:** ${new Date(item.date).toLocaleString()}\n`;
+            md += `- **Direction:** ${item.direction}\n`;
+            md += `- **Outcome:** ${item.outcome}\n`;
+            md += `- **Return:** ${item.returnVal}\n`;
+            md += `- **Tag:** ${item.tag}\n\n---\n\n`;
+            md += `### Questions & Answers\n\n`;
             (item.qa || []).forEach((q, idx) => {
-                md += `#### Q${idx+1}: ${q.questionEn}\n`;
-                md += `*${q.questionId}*\n\n`;
-                md += `**Answer:**\n${q.answer || '_Tidak ada jawaban ditulis_'}\n\n`;
+                md += `#### ${idx + 1}. ${q.questionEn}\n*${q.questionId}*\n\n> ${q.answer ? q.answer.replace(/\n/g, '\n> ') : 'N/A'}\n\n`;
             });
-
-            return md;
-        }
-
-        function copyMarkdownFromForm() {
-            if(!selectedOutcome || !selectedBranchAnswer) {
-                showToast('Selesaikan opsi Win/Loss/No Trades terlebih dahulu.', 'error');
-                return;
+            if (item.chartUrl) {
+                md += `### Chart Screenshot\n![Chart](${item.chartUrl})\n`;
             }
-            const qList = QUESTION_TREE[selectedOutcome][selectedBranchAnswer].questions;
-            const mockEntry = {
-                pair: document.getElementById('tradePair').value.toUpperCase() || 'PAIR',
-                date: document.getElementById('tradeDate').value || new Date().toISOString(),
-                direction: document.getElementById('tradeDirection').value,
-                returnVal: document.getElementById('tradeReturn').value || 'N/A',
-                outcome: selectedOutcome,
-                branchAnswer: selectedBranchAnswer,
-                tag: QUESTION_TREE[selectedOutcome][selectedBranchAnswer].tag,
-                chartUrl: uploadedChartBase64 || document.getElementById('chartUrl').value,
-                qa: [
-                    { questionEn: qList[0].en, questionId: qList[0].id, answer: document.getElementById('q1Answer').value },
-                    { questionEn: qList[1].en, questionId: qList[1].id, answer: document.getElementById('q2Answer').value },
-                    { questionEn: qList[2].en, questionId: qList[2].id, answer: document.getElementById('q3Answer').value }
-                ]
-            };
-
-            const text = generateMarkdown(mockEntry);
-            copyToClipboard(text);
+            return md;
         }
 
         function copyToClipboard(text) {
             const textarea = document.createElement('textarea');
             textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
             document.body.appendChild(textarea);
+            textarea.focus();
             textarea.select();
             try {
                 document.execCommand('copy');
-                showToast('Formatted Markdown berhasil di-copy!', 'success');
+                showToast('Berhasil disalin ke clipboard!', 'success');
             } catch (err) {
-                showToast('Gagal menyalin text.', 'error');
+                showToast('Gagal menyalin teks.', 'error');
             }
             document.body.removeChild(textarea);
         }
 
-        /* ==================== BULLETPROOF PDF ENGINE (WITH CHART IMAGE PRESERVATION) ==================== */
-        function downloadPDF(item) {
+        function copyMarkdownFromForm() {
+            const entry = getFormEntry();
+            if (!entry) {
+                showToast('Pilih opsi Win/Loss/No Trades terlebih dahulu.', 'error');
+                return;
+            }
+            copyToClipboard(generateMarkdown(entry));
+        }
+
+        async function preparePdfChartImage(url) {
+            if (!url) return null;
+            if (url.startsWith('data:image/')) return url;
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.crossOrigin = 'Anonymous';
+                img.src = url;
+                img.onload = function() {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.naturalWidth || img.width;
+                        canvas.height = img.naturalHeight || img.height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+                        resolve(canvas.toDataURL('image/jpeg', 0.9));
+                    } catch (e) {
+                        resolve(url);
+                    }
+                };
+                img.onerror = function() {
+                    resolve(null);
+                };
+            });
+        }
+
+        async function downloadPDF(item) {
             const loadingOverlay = document.getElementById('pdfLoadingOverlay');
             if (loadingOverlay) {
                 loadingOverlay.classList.remove('hidden');
                 loadingOverlay.classList.add('flex');
             }
 
-            // Simpan posisi scroll awal & scroll ke paling atas agar html2canvas menangkap seluruh area secara presisi
-            const savedScrollY = window.scrollY;
-            window.scrollTo(0, 0);
+            try {
+                const oldContainer = document.getElementById('pdf-render-container');
+                if (oldContainer) oldContainer.remove();
 
-            const oldContainer = document.getElementById('pdf-render-container');
-            if (oldContainer) oldContainer.remove();
+                const safeChartImage = await preparePdfChartImage(item.chartUrl);
 
-            // Render PDF container di posisi absolut teratas dokumen
-            const pdfContainer = document.createElement('div');
-            pdfContainer.id = 'pdf-render-container';
-            pdfContainer.style.width = '750px';
-            pdfContainer.style.padding = '32px';
-            pdfContainer.style.fontFamily = "'Inter', Arial, sans-serif";
-            pdfContainer.style.color = '#0f172a';
-            pdfContainer.style.backgroundColor = '#ffffff';
-            pdfContainer.style.position = 'absolute';
-            pdfContainer.style.left = '0';
-            pdfContainer.style.top = '0';
-            pdfContainer.style.zIndex = '99990';
-            pdfContainer.style.boxSizing = 'border-box';
-            pdfContainer.style.visibility = 'visible';
+                const pdfContainer = document.createElement('div');
+                pdfContainer.id = 'pdf-render-container';
+                pdfContainer.style.cssText = `
+                    position: absolute;
+                    left: -9999px;
+                    top: 0;
+                    width: 794px;
+                    padding: 32px;
+                    font-family: 'Inter', Arial, sans-serif;
+                    color: #0f172a !important;
+                    background-color: #ffffff !important;
+                    box-sizing: border-box;
+                `;
 
-            const formattedDate = item.date ? new Date(item.date).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' }) : 'N/A';
-            const mainQ = "Was the outcome of the trade a win or a loss? / Apakah hasil dari transaksi tersebut profit atau rugi?";
-            const branchQEn = QUESTION_TREE[item.outcome] ? QUESTION_TREE[item.outcome].branchQuestionEn : '';
-            const branchQId = QUESTION_TREE[item.outcome] ? QUESTION_TREE[item.outcome].branchQuestionId : '';
+                const formattedDate = item.date ? new Date(item.date).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' }) : 'N/A';
+                const mainQ = "Was the outcome of the trade a win or a loss? / Apakah hasil dari transaksi tersebut profit atau rugi?";
+                const branchQEn = QUESTION_TREE[item.outcome] ? QUESTION_TREE[item.outcome].branchQuestionEn : '';
+                const branchQId = QUESTION_TREE[item.outcome] ? QUESTION_TREE[item.outcome].branchQuestionId : '';
 
-            const hasImage = !!item.chartUrl;
+                pdfContainer.innerHTML = `
+                    <style>
+                        * { box-sizing: border-box; }
+                        .pdf-block {
+                            page-break-inside: avoid !important;
+                            break-inside: avoid !important;
+                            margin-bottom: 12px;
+                        }
+                        .pdf-card {
+                            background-color: #f8fafc !important;
+                            border: 1px solid #cbd5e1 !important;
+                            border-radius: 8px !important;
+                            padding: 12px 14px !important;
+                            color: #0f172a !important;
+                        }
+                        .pdf-answer {
+                            font-size: 11px !important;
+                            color: #1e293b !important;
+                            white-space: pre-wrap !important;
+                            word-break: break-word !important;
+                            overflow-wrap: anywhere !important;
+                            background-color: #ffffff !important;
+                            padding: 10px 12px !important;
+                            border-radius: 6px !important;
+                            border: 1px solid #cbd5e1 !important;
+                            line-height: 1.5 !important;
+                        }
+                    </style>
 
-            pdfContainer.innerHTML = `
-                <style>
-                    .pdf-block {
-                        page-break-inside: avoid !important;
-                        break-inside: avoid !important;
-                    }
-                    .pdf-card {
-                        background-color: #f8fafc !important;
-                        border: 1px solid #e2e8f0 !important;
-                        border-radius: 8px !important;
-                        padding: 12px 14px !important;
-                        margin-bottom: 12px !important;
-                        color: #0f172a !important;
-                    }
-                </style>
-
-                <div class="pdf-block" style="border-bottom: 3px solid #2563eb; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; background-color: #ffffff;">
-                    <div>
-                        <h1 style="margin: 0; font-size: 20px; color: #0f172a; font-weight: 800;">Post-Trade Review Report</h1>
-                        <p style="margin: 4px 0 0 0; color: #64748b; font-size: 11px; font-weight: 500;">TradeReview Pro Evaluation System</p>
-                    </div>
-                    <div style="text-align: right;">
-                        <span style="display: inline-block; padding: 6px 14px; background-color: #eff6ff; border-radius: 20px; font-weight: 800; font-size: 13px; color: #2563eb; border: 1px solid #bfdbfe;">${item.pair || 'GENERAL'}</span>
-                    </div>
-                </div>
-
-                <table class="pdf-block" style="width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: 11px; background-color: #f8fafc; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; color: #0f172a;">
-                    <tr>
-                        <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-weight: bold; width: 25%; color: #475569; background-color: #f1f5f9;">Tanggal & Waktu</td>
-                        <td style="padding: 8px 12px; border: 1px solid #e2e8f0; color: #0f172a; font-weight: 600;">${formattedDate}</td>
-                        <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-weight: bold; width: 25%; color: #475569; background-color: #f1f5f9;">Posisi / Arah</td>
-                        <td style="padding: 8px 12px; border: 1px solid #e2e8f0; color: #0f172a; font-weight: 600;">${item.direction || 'N/A'}</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #f1f5f9;">Hasil / Return</td>
-                        <td style="padding: 8px 12px; border: 1px solid #e2e8f0; color: #0f172a; font-weight: 600;">${item.returnVal || 'N/A'}</td>
-                        <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #f1f5f9;">Execution Tag</td>
-                        <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-weight: bold; color: #2563eb;">${item.tag || 'N/A'}</td>
-                    </tr>
-                </table>
-
-                <div class="pdf-block pdf-card" style="border-left: 4px solid #3b82f6 !important;">
-                    <div style="font-size: 10px; font-weight: 800; color: #1d4ed8; text-transform: uppercase;">1. Main Outcome</div>
-                    <div style="font-size: 12px; font-weight: 700; color: #1e293b; margin: 4px 0;">${mainQ}</div>
-                    <div style="font-size: 12px; font-weight: 800; color: #0f172a;">Hasil: <span style="color: ${item.outcome === 'WIN' ? '#059669' : item.outcome === 'LOSS' ? '#dc2626' : '#0284c7'};">${item.outcome}</span></div>
-                </div>
-
-                <div class="pdf-block pdf-card" style="border-left: 4px solid #6366f1 !important;">
-                    <div style="font-size: 10px; font-weight: 800; color: #4338ca; text-transform: uppercase;">2. Decision Path</div>
-                    <div style="font-size: 12px; font-weight: 700; color: #1e293b; margin-top: 4px;">${branchQEn}</div>
-                    <div style="font-size: 11px; color: #64748b; font-style: italic; margin-bottom: 4px;">${branchQId}</div>
-                    <div style="font-size: 12px; font-weight: 800; color: #0f172a;">Jawaban: ${item.branchAnswer === 'YES' ? 'Yes / Ya' : 'No / Tidak'}</div>
-                </div>
-
-                <div style="margin-top: 16px;">
-                    <h3 class="pdf-block" style="font-size: 13px; border-bottom: 2px solid #cbd5e1; padding-bottom: 4px; color: #0f172a; margin-bottom: 12px; font-weight: 800;">3. Deep Dive Review Answers</h3>
-                    ${(item.qa || []).map((q, idx) => `
-                        <div class="pdf-block pdf-card">
-                            <div style="font-size: 11px; font-weight: 700; color: #1e293b;">Q${idx + 1}: ${q.questionEn}</div>
-                            <div style="font-size: 10px; color: #64748b; font-style: italic; margin-bottom: 6px;">${q.questionId}</div>
-                            <div style="font-size: 11px; color: #334155; white-space: pre-wrap; background-color: #ffffff; padding: 8px 10px; border-radius: 6px; border: 1px solid #cbd5e1; line-height: 1.4;">${q.answer ? q.answer : '<em style="color: #94a3b8;">Tidak ada tanggapan tertulis</em>'}</div>
+                    <div class="pdf-block" style="border-bottom: 3px solid #2563eb; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h1 style="margin: 0; font-size: 20px; color: #0f172a; font-weight: 800;">Post-Trade Review Report</h1>
+                            <p style="margin: 2px 0 0 0; color: #64748b; font-size: 11px;">TradeReview Pro System</p>
                         </div>
-                    `).join('')}
-                </div>
-
-                ${hasImage ? `
-                    <div class="pdf-block pdf-card" style="margin-top: 14px;">
-                        <div style="font-size: 10px; font-weight: 800; color: #475569; margin-bottom: 6px; text-transform: uppercase;">Chart Screenshot / Attachment</div>
-                        <div style="text-align: center; margin: 8px 0; background-color: #0f172a; padding: 8px; border-radius: 6px;">
-                            <img id="pdfChartImage" src="${item.chartUrl}" style="max-width: 100%; max-height: 300px; object-fit: contain; border-radius: 4px; display: inline-block;" alt="Chart Screenshot" />
+                        <div>
+                            <span style="display: inline-block; padding: 4px 14px; background-color: #eff6ff; border-radius: 20px; font-weight: 800; font-size: 13px; color: #2563eb; border: 1px solid #bfdbfe;">${item.pair || 'GENERAL'}</span>
                         </div>
                     </div>
-                ` : ''}
 
-                <div class="pdf-block" style="margin-top: 24px; border-top: 1px solid #e2e8f0; padding-top: 8px; font-size: 9px; color: #94a3b8; text-align: center;">
-                    Generated via TradeReview Pro - Post Trade Evaluation Hub
-                </div>
-            `;
+                    <table class="pdf-block" style="width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 12px; background-color: #f8fafc; border: 1px solid #cbd5e1;">
+                        <tr>
+                            <td style="padding: 8px 10px; border: 1px solid #cbd5e1; font-weight: bold; width: 25%; color: #475569;">Tanggal</td>
+                            <td style="padding: 8px 10px; border: 1px solid #cbd5e1; color: #0f172a;">${formattedDate}</td>
+                            <td style="padding: 8px 10px; border: 1px solid #cbd5e1; font-weight: bold; width: 25%; color: #475569;">Posisi</td>
+                            <td style="padding: 8px 10px; border: 1px solid #cbd5e1; color: #0f172a;">${item.direction || 'N/A'}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 10px; border: 1px solid #cbd5e1; font-weight: bold; color: #475569;">Return</td>
+                            <td style="padding: 8px 10px; border: 1px solid #cbd5e1; color: #0f172a;">${item.returnVal || 'N/A'}</td>
+                            <td style="padding: 8px 10px; border: 1px solid #cbd5e1; font-weight: bold; color: #475569;">Tag</td>
+                            <td style="padding: 8px 10px; border: 1px solid #cbd5e1; font-weight: bold; color: #2563eb;">${item.tag || 'N/A'}</td>
+                        </tr>
+                    </table>
 
-            document.body.appendChild(pdfContainer);
+                    <div class="pdf-block pdf-card" style="border-left: 4px solid #3b82f6 !important;">
+                        <div style="font-size: 10px; font-weight: 800; color: #1d4ed8; text-transform: uppercase;">1. Main Outcome</div>
+                        <div style="font-size: 11px; font-weight: 700; color: #1e293b; margin: 2px 0;">${mainQ}</div>
+                        <div style="font-size: 11px; font-weight: 800;">Hasil: <span style="color: ${item.outcome === 'WIN' ? '#059669' : item.outcome === 'LOSS' ? '#dc2626' : '#0284c7'};">${item.outcome}</span></div>
+                    </div>
 
-            const cleanupAndRestore = () => {
+                    <div class="pdf-block pdf-card" style="border-left: 4px solid #6366f1 !important;">
+                        <div style="font-size: 10px; font-weight: 800; color: #4338ca; text-transform: uppercase;">2. Decision Path</div>
+                        <div style="font-size: 11px; font-weight: 700; color: #1e293b; margin-top: 2px;">${branchQEn}</div>
+                        <div style="font-size: 10px; color: #64748b; font-style: italic; margin-bottom: 2px;">${branchQId}</div>
+                        <div style="font-size: 11px; font-weight: 800;">Jawaban: ${item.branchAnswer === 'YES' ? 'Yes / Ya' : 'No / Tidak'}</div>
+                    </div>
+
+                    <div style="margin-top: 10px;">
+                        <h3 style="font-size: 12px; border-bottom: 2px solid #cbd5e1; padding-bottom: 4px; color: #0f172a; margin-bottom: 10px; font-weight: 800;">3. Deep Dive Review Answers</h3>
+                        ${(item.qa || []).map((q, idx) => `
+                            <div class="pdf-block pdf-card">
+                                <div style="font-size: 11px; font-weight: 700; color: #1e293b;">Q${idx + 1}: ${q.questionEn}</div>
+                                <div style="font-size: 10px; color: #64748b; font-style: italic; margin-bottom: 6px;">${q.questionId}</div>
+                                <div class="pdf-answer">${q.answer ? escapeHtml(q.answer) : '<em style="color: #94a3b8;">Tidak ada tanggapan tertulis</em>'}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    ${safeChartImage ? `
+                        <div class="pdf-block pdf-card" style="margin-top: 10px;">
+                            <div style="font-size: 10px; font-weight: 800; color: #475569; margin-bottom: 4px; text-transform: uppercase;">Chart Screenshot</div>
+                            <div style="text-align: center; margin: 4px 0; background-color: #0f172a; padding: 8px; border-radius: 6px;">
+                                <img src="${safeChartImage}" style="max-width: 100%; max-height: 300px; object-fit: contain; border-radius: 4px;" alt="Chart Screenshot" />
+                            </div>
+                        </div>
+                    ` : ''}
+                `;
+
+                document.body.appendChild(pdfContainer);
+
+                const opt = {
+                    margin:       [10, 10, 10, 10],
+                    filename:     `Trade_Review_${(item.pair || 'TRADE').replace(/[^a-zA-Z0-9]/g, '_')}_${(item.date || '').slice(0,10)}.pdf`,
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { scale: 2, useCORS: true, allowTaint: true, logging: false, windowWidth: 800 },
+                    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                    pagebreak:    { mode: ['css', 'legacy'] }
+                };
+
+                await html2pdf().set(opt).from(pdfContainer).save();
+                showToast('File PDF berhasil didownload!', 'success');
+            } catch (err) {
+                console.error('PDF Error:', err);
+                showToast('Gagal memproses PDF. Membuka opsi cetak...', 'error');
+                printReport(item);
+            } finally {
                 const el = document.getElementById('pdf-render-container');
                 if (el) el.remove();
-                window.scrollTo(0, savedScrollY);
                 if (loadingOverlay) {
                     loadingOverlay.classList.add('hidden');
                     loadingOverlay.classList.remove('flex');
                 }
-            };
-
-            const proceedWithPdf = () => {
-                setTimeout(() => {
-                    const opt = {
-                        margin:       [8, 8, 8, 8],
-                        filename:     `Trade_Review_${(item.pair || 'TRADE').replace(/[^a-zA-Z0-9]/g, '_')}_${(item.date || '').slice(0,10)}.pdf`,
-                        image:        { type: 'jpeg', quality: 0.98 },
-                        html2canvas:  { 
-                            scale: 2, 
-                            useCORS: true,
-                            allowTaint: false,
-                            logging: false,
-                            scrollX: 0,
-                            scrollY: 0,
-                            windowWidth: 800
-                        },
-                        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                        pagebreak:    { mode: ['css', 'legacy'] }
-                    };
-
-                    html2pdf().set(opt).from(pdfContainer).save().then(() => {
-                        cleanupAndRestore();
-                        showToast('File PDF berhasil didownload!', 'success');
-                    }).catch(err => {
-                        console.error('PDF Generation Error:', err);
-                        cleanupAndRestore();
-                        showToast('Gagal mengunduh PDF. Coba lagi.', 'error');
-                    });
-                }, 300);
-            };
-
-            const pdfImg = document.getElementById('pdfChartImage');
-            if (pdfImg && !pdfImg.complete) {
-                pdfImg.onload = proceedWithPdf;
-                pdfImg.onerror = () => {
-                    console.warn('Image failed to load, proceeding with PDF generation.');
-                    proceedWithPdf();
-                };
-            } else {
-                proceedWithPdf();
             }
         }
 
         function downloadPDFById(id) {
             const item = journals.find(j => j.id === id);
-            if(item) {
-                downloadPDF(item);
-            }
+            if (item) downloadPDF(item);
         }
 
         function downloadPDFFromForm() {
-            if(!selectedOutcome || !selectedBranchAnswer) {
-                showToast('Harap selesaikan opsi Win/Loss/No Trades terlebih dahulu.', 'error');
+            const entry = getFormEntry();
+            if (!entry) {
+                showToast('Harap selesaikan pertanyaan terlebih dahulu.', 'error');
                 return;
             }
-
-            const qList = QUESTION_TREE[selectedOutcome][selectedBranchAnswer].questions;
-            const mockEntry = {
-                pair: document.getElementById('tradePair').value.toUpperCase() || 'PAIR',
-                date: document.getElementById('tradeDate').value || new Date().toISOString(),
-                direction: document.getElementById('tradeDirection').value,
-                returnVal: document.getElementById('tradeReturn').value || 'N/A',
-                outcome: selectedOutcome,
-                branchAnswer: selectedBranchAnswer,
-                tag: QUESTION_TREE[selectedOutcome][selectedBranchAnswer].tag,
-                chartUrl: uploadedChartBase64 || document.getElementById('chartUrl').value,
-                qa: [
-                    { questionEn: qList[0].en, questionId: qList[0].id, answer: document.getElementById('q1Answer').value },
-                    { questionEn: qList[1].en, questionId: qList[1].id, answer: document.getElementById('q2Answer').value },
-                    { questionEn: qList[2].en, questionId: qList[2].id, answer: document.getElementById('q3Answer').value }
-                ]
-            };
-
-            downloadPDF(mockEntry);
+            downloadPDF(entry);
         }
 
-        function renderHistoryList() {
-            const container = document.getElementById('historyList');
-            const emptyState = document.getElementById('emptyHistoryState');
-            const search = document.getElementById('searchInput').value.toLowerCase();
-            const filterOutcome = document.getElementById('filterOutcome').value;
+        function printReport(item) {
+            const formattedDate = item.date ? new Date(item.date).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' }) : 'N/A';
+            const mainQ = "Was the outcome of the trade a win or a loss? / Apakah hasil dari transaksi tersebut profit atau rugi?";
+            const branchQEn = QUESTION_TREE[item.outcome] ? QUESTION_TREE[item.outcome].branchQuestionEn : '';
+            const branchQId = QUESTION_TREE[item.outcome] ? QUESTION_TREE[item.outcome].branchQuestionId : '';
 
-            const filtered = journals.filter(item => {
-                const matchSearch = item.pair.toLowerCase().includes(search) ||
-                                    item.tag.toLowerCase().includes(search) ||
-                                    item.date.includes(search);
-                const matchOutcome = filterOutcome === 'ALL' || item.outcome === filterOutcome;
-                return matchSearch && matchOutcome;
-            });
-
-            if(filtered.length === 0) {
-                container.innerHTML = '';
-                emptyState.classList.remove('hidden');
+            const printWin = window.open('', '_blank');
+            if (!printWin) {
+                showToast('Gagal membuka jendela cetak. Izinkan pop-up browser.', 'error');
                 return;
             }
 
-            emptyState.classList.add('hidden');
-            container.innerHTML = filtered.map(item => {
-                let badgeStyle = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
-                let icon = "fa-trophy";
-                if(item.outcome === 'LOSS') {
-                    badgeStyle = "bg-rose-500/10 text-rose-400 border-rose-500/20";
-                    icon = "fa-circle-xmark";
-                } else if(item.outcome === 'NO_TRADES') {
-                    badgeStyle = "bg-sky-500/10 text-sky-400 border-sky-500/20";
-                    icon = "fa-hand";
-                }
-
-                return `
-                    <div class="glass-panel p-5 rounded-2xl border border-brand-border space-y-4 hover:border-slate-700 transition">
-                        <div class="flex items-start justify-between gap-2">
-                            <div>
-                                <div class="flex items-center gap-2">
-                                    <span class="font-bold text-base text-white font-mono">${item.pair}</span>
-                                    <span class="text-xs bg-slate-800 text-gray-300 px-2 py-0.5 rounded font-mono">${item.direction}</span>
-                                    <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full border ${badgeStyle} flex items-center gap-1">
-                                        <i class="fa-solid ${icon} text-[10px]"></i> ${item.outcome}
-                                    </span>
-                                </div>
-                                <span class="text-xs text-gray-500 block mt-1">${new Date(item.date).toLocaleString()}</span>
-                            </div>
-                            <span class="text-sm font-bold font-mono text-gray-200 bg-slate-900/80 px-2.5 py-1 rounded-xl border border-brand-border">${item.returnVal}</span>
+            printWin.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Trade Review - ${item.pair || 'GENERAL'}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; color: #0f172a; padding: 20px; line-height: 1.5; }
+                        .header { border-bottom: 2px solid #2563eb; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+                        .badge { padding: 4px 10px; background: #eff6ff; border-radius: 12px; font-weight: bold; color: #2563eb; }
+                        table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 12px; }
+                        td { padding: 8px; border: 1px solid #cbd5e1; }
+                        .card { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px; margin-bottom: 12px; page-break-inside: avoid; }
+                        .answer { background: #fff; border: 1px solid #cbd5e1; padding: 8px; border-radius: 4px; white-space: pre-wrap; font-size: 12px; margin-top: 4px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <div>
+                            <h2 style="margin:0;">Post-Trade Review Report</h2>
+                            <span style="font-size:11px; color:#64748b;">TradeReview Pro System</span>
                         </div>
-
-                        <div class="text-xs text-gray-300 bg-slate-900/60 p-2.5 rounded-xl border border-brand-border/50">
-                            <span class="text-gray-500 block font-medium uppercase text-[10px] tracking-wider">Evaluation Tag</span>
-                            <span class="font-medium text-blue-400">${item.tag}</span>
-                        </div>
-
-                        ${item.chartUrl ? `
-                            <div class="rounded-xl overflow-hidden border border-brand-border/40 max-h-32 bg-black/40 flex items-center justify-center">
-                                <img src="${item.chartUrl}" alt="Chart Screenshot" class="max-h-32 object-contain w-full">
-                            </div>
-                        ` : ''}
-
-                        <div class="flex items-center justify-between pt-2 border-t border-brand-border/60">
-                            <button onclick="openModal('${item.id}')" class="text-xs text-blue-400 hover:text-blue-300 font-medium flex items-center gap-1">
-                                <i class="fa-solid fa-eye"></i> Detail Review
-                            </button>
-                            <div class="flex items-center gap-2">
-                                <button onclick="downloadPDFById('${item.id}')" title="Download PDF" class="text-rose-400 hover:text-rose-300 text-xs p-1.5 rounded-lg hover:bg-slate-800 flex items-center gap-1">
-                                    <i class="fa-solid fa-file-pdf"></i> PDF
-                                </button>
-                                <button onclick="copySingleItemMD('${item.id}')" title="Copy Markdown" class="text-gray-400 hover:text-white text-xs p-1.5 rounded-lg hover:bg-slate-800">
-                                    <i class="fa-solid fa-copy"></i>
-                                </button>
-                                <button onclick="deleteEntry('${item.id}')" title="Hapus" class="text-gray-500 hover:text-rose-400 text-xs p-1.5 rounded-lg hover:bg-slate-800">
-                                    <i class="fa-solid fa-trash-can"></i>
-                                </button>
-                            </div>
-                        </div>
+                        <div class="badge">${item.pair || 'GENERAL'}</div>
                     </div>
-                `;
-            }).join('');
+                    <table>
+                        <tr>
+                            <td><b>Tanggal:</b> ${formattedDate}</td>
+                            <td><b>Posisi:</b> ${item.direction || 'N/A'}</td>
+                        </tr>
+                        <tr>
+                            <td><b>Return:</b> ${item.returnVal || 'N/A'}</td>
+                            <td><b>Tag:</b> ${item.tag || 'N/A'}</td>
+                        </tr>
+                    </table>
+                    <div class="card">
+                        <div><b>1. MAIN OUTCOME:</b> ${item.outcome}</div>
+                        <div style="font-size:11px; color:#64748b;">${mainQ}</div>
+                    </div>
+                    <div class="card">
+                        <div><b>2. DECISION:</b> ${item.branchAnswer === 'YES' ? 'Yes / Ya' : 'No / Tidak'}</div>
+                        <div style="font-size:11px; color:#1e293b;">${branchQEn}</div>
+                        <div style="font-size:10px; color:#64748b;">${branchQId}</div>
+                    </div>
+                    <h3>3. Deep Dive Answers</h3>
+                    ${(item.qa || []).map((q, idx) => `
+                        <div class="card">
+                            <div><b>Q${idx+1}: ${q.questionEn}</b></div>
+                            <div style="font-size:11px; color:#64748b; font-style:italic;">${q.questionId}</div>
+                            <div class="answer">${q.answer ? escapeHtml(q.answer) : '<em>Tidak ada tanggapan tertulis</em>'}</div>
+                        </div>
+                    `).join('')}
+                    ${item.chartUrl ? `
+                        <div class="card" style="text-align:center;">
+                            <b>Chart Screenshot</b><br>
+                            <img src="${item.chartUrl}" style="max-width:100%; max-height:350px; margin-top:8px; border-radius:4px;" />
+                        </div>
+                    ` : ''}
+                    <script>
+                        window.onload = function() { window.print(); };
+                    <\/script>
+                </body>
+                </html>
+            `);
+            printWin.document.close();
+        }
+
+        function printReportFromForm() {
+            const entry = getFormEntry();
+            if (!entry) {
+                showToast('Harap selesaikan pertanyaan terlebih dahulu.', 'error');
+                return;
+            }
+            printReport(entry);
         }
 
         function openModal(id) {
             const item = journals.find(j => j.id === id);
-            if(!item) return;
+            if (!item) return;
 
             const modal = document.getElementById('detailModal');
             const title = document.getElementById('modalTitle');
@@ -1106,17 +1077,19 @@
             const body = document.getElementById('modalBody');
             const copyBtn = document.getElementById('modalCopyBtn');
             const pdfBtn = document.getElementById('modalPdfBtn');
+            const printBtn = document.getElementById('modalPrintBtn');
 
-            title.textContent = `${item.pair} - Post Trade Review`;
+            title.textContent = `${item.pair} - Review Detail`;
             badge.textContent = item.tag;
-            
+
             let badgeClass = "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
-            if(item.outcome === 'LOSS') badgeClass = "bg-rose-500/20 text-rose-400 border border-rose-500/30";
-            if(item.outcome === 'NO_TRADES') badgeClass = "bg-sky-500/20 text-sky-400 border border-sky-500/30";
+            if (item.outcome === 'LOSS') badgeClass = "bg-rose-500/20 text-rose-400 border border-rose-500/30";
+            if (item.outcome === 'NO_TRADES') badgeClass = "bg-sky-500/20 text-sky-400 border border-sky-500/30";
             badge.className = `text-xs font-mono uppercase px-2.5 py-0.5 rounded-full font-semibold ${badgeClass}`;
 
             copyBtn.onclick = () => copyToClipboard(generateMarkdown(item));
             pdfBtn.onclick = () => downloadPDF(item);
+            if (printBtn) printBtn.onclick = () => printReport(item);
 
             const mainQ = "Was the outcome of the trade a win or a loss? / Apakah hasil dari transaksi tersebut profit atau rugi?";
             const branchQEn = QUESTION_TREE[item.outcome] ? QUESTION_TREE[item.outcome].branchQuestionEn : '';
@@ -1125,7 +1098,7 @@
             body.innerHTML = `
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-900/80 p-3 rounded-xl border border-brand-border text-xs">
                     <div><span class="text-gray-500 block">Tanggal</span><span class="text-gray-200 font-mono font-medium">${new Date(item.date).toLocaleString()}</span></div>
-                    <div><span class="text-gray-500 block">Arah</span><span class="text-gray-200 font-mono font-medium">${item.direction}</span></div>
+                    <div><span class="text-gray-500 block">Posisi</span><span class="text-gray-200 font-mono font-medium">${item.direction}</span></div>
                     <div><span class="text-gray-500 block">Return</span><span class="text-gray-200 font-mono font-medium">${item.returnVal}</span></div>
                     <div><span class="text-gray-500 block">Decision</span><span class="text-gray-200 font-mono font-medium">${item.branchAnswer}</span></div>
                 </div>
@@ -1133,11 +1106,11 @@
                 <div class="space-y-2">
                     <span class="text-xs font-semibold text-blue-400 uppercase tracking-wider block">Pertanyaan Utama</span>
                     <p class="text-sm text-gray-300 font-medium">${mainQ}</p>
-                    <p class="text-sm font-bold text-white bg-slate-900/60 p-2.5 rounded-xl border border-brand-border">Result: ${item.outcome}</p>
+                    <p class="text-sm font-bold text-white bg-slate-900/60 p-2.5 rounded-xl border border-brand-border">Hasil: ${item.outcome}</p>
                 </div>
 
                 <div class="space-y-2">
-                    <span class="text-xs font-semibold text-blue-400 uppercase tracking-wider block">Pertanyaan Cabang (Branching)</span>
+                    <span class="text-xs font-semibold text-blue-400 uppercase tracking-wider block">Pertanyaan Cabang</span>
                     <p class="text-sm text-gray-200 font-medium">${branchQEn}</p>
                     <p class="text-xs text-gray-400 italic">${branchQId}</p>
                     <p class="text-sm font-bold text-white bg-slate-900/60 p-2.5 rounded-xl border border-brand-border">Jawaban: ${item.branchAnswer === 'YES' ? 'Yes / Ya' : 'No / Tidak'}</p>
@@ -1147,9 +1120,9 @@
                     <span class="text-xs font-semibold text-blue-400 uppercase tracking-wider block">Jawaban Evaluasi Mendalam</span>
                     ${(item.qa || []).map((q, idx) => `
                         <div class="bg-slate-900/50 p-3.5 rounded-xl border border-brand-border/60 space-y-1">
-                            <p class="text-xs font-semibold text-gray-200">${idx+1}. ${q.questionEn}</p>
+                            <p class="text-xs font-semibold text-gray-200">${idx + 1}. ${q.questionEn}</p>
                             <p class="text-[11px] text-gray-400 italic mb-2">${q.questionId}</p>
-                            <p class="text-sm text-gray-100 whitespace-pre-wrap bg-slate-950/60 p-2.5 rounded-lg border border-brand-border/40 font-sans">${q.answer || '<em class="text-gray-600">Tidak ada tanggapan tertulis</em>'}</p>
+                            <p class="text-sm text-gray-100 whitespace-pre-wrap bg-slate-950/60 p-2.5 rounded-lg border border-brand-border/40 font-sans">${q.answer ? escapeHtml(q.answer) : '<em class="text-gray-600">Tidak ada tanggapan tertulis</em>'}</p>
                         </div>
                     `).join('')}
                 </div>
@@ -1185,9 +1158,69 @@
 
         function copySingleItemMD(id) {
             const item = journals.find(j => j.id === id);
-            if(item) {
-                copyToClipboard(generateMarkdown(item));
+            if (item) copyToClipboard(generateMarkdown(item));
+        }
+
+        function renderHistoryList() {
+            const container = document.getElementById('historyList');
+            const emptyState = document.getElementById('emptyHistoryState');
+            const search = (document.getElementById('searchInput')?.value || '').toLowerCase();
+            const filter = document.getElementById('filterOutcome')?.value || 'ALL';
+
+            if (!container) return;
+
+            let filtered = journals.filter(j => {
+                const matchSearch = j.pair.toLowerCase().includes(search) || (j.date && j.date.includes(search)) || (j.tag && j.tag.toLowerCase().includes(search));
+                const matchOutcome = filter === 'ALL' || j.outcome === filter;
+                return matchSearch && matchOutcome;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = '';
+                if (emptyState) emptyState.classList.remove('hidden');
+                return;
             }
+
+            if (emptyState) emptyState.classList.add('hidden');
+
+            container.innerHTML = filtered.map(item => {
+                let badgeColor = "bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
+                if (item.outcome === 'LOSS') badgeColor = "bg-rose-500/20 text-rose-400 border-rose-500/30";
+                if (item.outcome === 'NO_TRADES') badgeColor = "bg-sky-500/20 text-sky-400 border-sky-500/30";
+
+                return `
+                    <div class="glass-panel p-5 rounded-2xl border border-brand-border space-y-4 hover:border-blue-500/50 transition">
+                        <div class="flex items-center justify-between border-b border-brand-border/60 pb-3">
+                            <div class="flex items-center gap-2">
+                                <span class="text-base font-extrabold text-white font-mono">${item.pair}</span>
+                                <span class="text-[10px] font-mono px-2 py-0.5 rounded-full border ${badgeColor}">${item.tag}</span>
+                            </div>
+                            <span class="text-xs text-gray-400 font-mono">${new Date(item.date).toLocaleDateString()}</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 text-xs bg-slate-900/60 p-2.5 rounded-xl border border-brand-border/40">
+                            <div><span class="text-gray-500 block">Posisi</span><span class="font-semibold text-gray-200 font-mono">${item.direction}</span></div>
+                            <div><span class="text-gray-500 block">Return</span><span class="font-semibold text-gray-200 font-mono">${item.returnVal}</span></div>
+                            <div><span class="text-gray-500 block">Decision</span><span class="font-semibold text-gray-200 font-mono">${item.branchAnswer}</span></div>
+                        </div>
+                        <div class="flex items-center justify-between pt-1">
+                            <button onclick="openModal('${item.id}')" class="text-xs font-semibold text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                                <i class="fa-solid fa-eye"></i> Lihat Detail
+                            </button>
+                            <div class="flex items-center gap-1.5">
+                                <button onclick="downloadPDFById('${item.id}')" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-rose-400 text-xs" title="Download PDF">
+                                    <i class="fa-solid fa-file-pdf"></i>
+                                </button>
+                                <button onclick="copySingleItemMD('${item.id}')" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-gray-300 text-xs" title="Copy Markdown">
+                                    <i class="fa-solid fa-copy"></i>
+                                </button>
+                                <button onclick="deleteEntry('${item.id}')" class="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-900/50 text-rose-400 text-xs" title="Hapus">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
 
         function renderAnalytics() {
@@ -1219,13 +1252,10 @@
             const missedTrades = journals.filter(j => j.outcome === 'NO_TRADES' && j.branchAnswer === 'YES').length;
 
             document.getElementById('statNoTrades').textContent = disciplinedNoTrades;
-
             document.getElementById('statGoodWins').textContent = goodWins;
             document.getElementById('statFlawedWins').textContent = flawedWins;
-
             document.getElementById('statGoodLosses').textContent = goodLosses;
             document.getElementById('statBadLosses').textContent = badLosses;
-
             document.getElementById('statGoodNoTrades').textContent = disciplinedNoTrades;
             document.getElementById('statMissedTrades').textContent = missedTrades;
         }
@@ -1246,7 +1276,7 @@
             fileReader.onload = function(e) {
                 try {
                     const importedData = JSON.parse(e.target.result);
-                    if(Array.isArray(importedData)) {
+                    if (Array.isArray(importedData)) {
                         journals = importedData;
                         localStorage.setItem('trade_reviews_data', JSON.stringify(journals));
                         renderHistoryList();
@@ -1260,7 +1290,7 @@
                     showToast('Gagal membaca file JSON.', 'error');
                 }
             };
-            if(event.target.files[0]) {
+            if (event.target.files[0]) {
                 fileReader.readAsText(event.target.files[0]);
             }
         }
@@ -1280,9 +1310,9 @@
             if (!toast || !msg || !icon) return;
 
             msg.textContent = message;
-            if(type === 'success') {
+            if (type === 'success') {
                 icon.className = "fa-solid fa-circle-check text-emerald-400 text-base";
-            } else if(type === 'error') {
+            } else if (type === 'error') {
                 icon.className = "fa-solid fa-triangle-exclamation text-rose-400 text-base";
             } else {
                 icon.className = "fa-solid fa-circle-info text-blue-400 text-base";
@@ -1302,6 +1332,8 @@
                 dateInput.value = now.toISOString().slice(0, 16);
             }
             updateBadges();
+            renderHistoryList();
+            renderAnalytics();
         };
     </script>
 </body>
