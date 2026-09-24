@@ -65,20 +65,20 @@
             background: #334155;
         }
 
-        /* PDF Render Template Styling - Fixed for html2canvas rendering */
+        /* PDF Render Template Styling - Offscreen placement & explicit sizing for html2canvas */
         #pdf-wrapper {
-            position: fixed;
+            position: absolute;
             top: 0;
-            left: 0;
+            left: -9999px;
             width: 800px;
-            z-index: -50;
+            z-index: 99999;
             opacity: 0;
             pointer-events: none;
             background-color: #ffffff;
         }
 
         #pdf-render-area {
-            width: 100%;
+            width: 800px;
             padding: 30px;
             background-color: #ffffff;
             color: #0f172a;
@@ -411,10 +411,12 @@
                 <div class="pdf-text-content" id="pdf-aextra-text">-</div>
             </div>
 
-            <!-- Screenshot in PDF -->
-            <div id="pdf-image-container" class="pdf-page-block" style="margin-top: 20px; display: none; text-align: center;">
+            <!-- Screenshot in PDF - Fixed standard layout for html2canvas compatibility -->
+            <div id="pdf-image-container" class="pdf-page-block" style="margin-top: 20px; display: none; text-align: center; width: 100%;">
                 <div style="font-size: 9.5pt; font-weight: 700; color: #475569; margin-bottom: 8px; text-align: left;">Chart Screenshot:</div>
-                <img id="pdf-chart-img" src="" style="max-width: 100%; max-height: 400px; border: 1px solid #cbd5e1; border-radius: 6px; object-fit: contain;">
+                <div style="width: 100%; text-align: center; overflow: hidden; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px; background-color: #f8fafc;">
+                    <img id="pdf-chart-img" src="" style="display: block; width: 100%; max-width: 100%; height: auto; max-height: 450px; margin: 0 auto; border-radius: 4px;">
+                </div>
             </div>
 
             <!-- Footer in PDF -->
@@ -839,7 +841,9 @@
             const wrapper = document.getElementById('pdf-wrapper');
             const element = document.getElementById('pdf-render-area');
 
-            // Temporarily make wrapper visible at position (0,0) so html2canvas captures valid dimensions
+            // Temporarily move wrapper to top-left of window (0,0) so html2canvas renders the complete width
+            wrapper.style.left = '0px';
+            wrapper.style.top = '0px';
             wrapper.style.opacity = '1';
 
             const cleanPair = data.meta.pair.replace(/[^a-zA-Z0-9]/g, '_');
@@ -850,22 +854,34 @@
                 margin:       [10, 10, 10, 10],
                 filename:     fileName,
                 image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true, logging: false, scrollX: 0, scrollY: 0, windowWidth: 800 },
+                html2canvas:  { 
+                    scale: 2, 
+                    useCORS: true, 
+                    logging: false, 
+                    scrollX: 0, 
+                    scrollY: 0,
+                    x: 0,
+                    y: 0,
+                    width: 800,
+                    windowWidth: 800
+                },
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
                 pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
             };
 
-            // Small delay to ensure all DOM image/text updates complete before canvas capture
+            // Allow DOM to finish rendering updated image dimensions before html2canvas capture
             setTimeout(() => {
                 html2pdf().set(opt).from(element).save().then(() => {
+                    wrapper.style.left = '-9999px';
                     wrapper.style.opacity = '0';
                     showToast("PDF Berhasil Di-download!", "success");
                 }).catch(err => {
+                    wrapper.style.left = '-9999px';
                     wrapper.style.opacity = '0';
                     console.error("Export PDF error:", err);
                     showToast("Gagal membuat PDF. Coba kembali.", "error");
                 });
-            }, 150);
+            }, 250);
         }
 
         function renderHistoryList() {
