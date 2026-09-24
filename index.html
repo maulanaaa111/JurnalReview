@@ -996,91 +996,126 @@
         function downloadPDF(item) {
             showToast('Sedang membuat file PDF...', 'info');
 
-            // Construct printable html document off-screen
+            // Construct printable html document off-screen with fixed width and page-break guards
             const pdfContainer = document.createElement('div');
-            pdfContainer.style.padding = '30px';
+            pdfContainer.id = 'pdf-render-container';
+            pdfContainer.style.width = '700px';
+            pdfContainer.style.padding = '25px';
             pdfContainer.style.fontFamily = "'Helvetica', 'Arial', sans-serif";
             pdfContainer.style.color = '#0f172a';
             pdfContainer.style.backgroundColor = '#ffffff';
+            pdfContainer.style.position = 'absolute';
+            pdfContainer.style.left = '-9999px';
+            pdfContainer.style.top = '0';
 
             const formattedDate = new Date(item.date).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' });
             const mainQ = "Was the outcome of the trade a win or a loss? / Apakah hasil dari transaksi tersebut profit atau rugi?";
             const branchQEn = QUESTION_TREE[item.outcome] ? QUESTION_TREE[item.outcome].branchQuestionEn : '';
             const branchQId = QUESTION_TREE[item.outcome] ? QUESTION_TREE[item.outcome].branchQuestionId : '';
 
+            // Helper to check if URL might be an image
+            const isImageUrl = item.chartUrl && (item.chartUrl.match(/\.(jpeg|jpg|gif|png|webp)/i) || item.chartUrl.includes('tradingview.com/x/'));
+
             pdfContainer.innerHTML = `
-                <div style="border-bottom: 3px solid #2563eb; padding-bottom: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start;">
+                <style>
+                    .pdf-block {
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
+                    }
+                </style>
+
+                <div class="pdf-block" style="border-bottom: 3px solid #2563eb; padding-bottom: 12px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: flex-start;">
                     <div>
-                        <h1 style="margin: 0; font-size: 24px; color: #1e293b;">Post-Trade Review Report</h1>
-                        <p style="margin: 5px 0 0 0; color: #64748b; font-size: 13px;">TradeReview Pro Evaluation Sheet</p>
+                        <h1 style="margin: 0; font-size: 22px; color: #1e293b; font-weight: bold;">Post-Trade Review Report</h1>
+                        <p style="margin: 4px 0 0 0; color: #64748b; font-size: 12px;">TradeReview Pro Evaluation Sheet</p>
                     </div>
                     <div style="text-align: right;">
-                        <span style="display: inline-block; padding: 4px 12px; background-color: #f1f5f9; border-radius: 20px; font-weight: bold; font-size: 14px; color: #2563eb;">${item.pair}</span>
+                        <span style="display: inline-block; padding: 4px 12px; background-color: #f1f5f9; border-radius: 20px; font-weight: bold; font-size: 13px; color: #2563eb; border: 1px solid #cbd5e1;">${item.pair}</span>
                     </div>
                 </div>
 
-                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; background-color: #f8fafc; border-radius: 8px;">
+                <table class="pdf-block" style="width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: 12px; background-color: #f8fafc; border-radius: 8px; overflow: hidden;">
                     <tr>
-                        <td style="padding: 10px; border: 1px solid #e2e8f0; font-weight: bold; width: 25%;">Tanggal & Waktu</td>
-                        <td style="padding: 10px; border: 1px solid #e2e8f0;">${formattedDate}</td>
-                        <td style="padding: 10px; border: 1px solid #e2e8f0; font-weight: bold; width: 25%;">Posisi / Arah</td>
-                        <td style="padding: 10px; border: 1px solid #e2e8f0;">${item.direction}</td>
+                        <td style="padding: 8px 10px; border: 1px solid #e2e8f0; font-weight: bold; width: 25%; color: #475569;">Tanggal & Waktu</td>
+                        <td style="padding: 8px 10px; border: 1px solid #e2e8f0; color: #0f172a;">${formattedDate}</td>
+                        <td style="padding: 8px 10px; border: 1px solid #e2e8f0; font-weight: bold; width: 25%; color: #475569;">Posisi / Arah</td>
+                        <td style="padding: 8px 10px; border: 1px solid #e2e8f0; color: #0f172a;">${item.direction}</td>
                     </tr>
                     <tr>
-                        <td style="padding: 10px; border: 1px solid #e2e8f0; font-weight: bold;">Hasil / Return</td>
-                        <td style="padding: 10px; border: 1px solid #e2e8f0;">${item.returnVal}</td>
-                        <td style="padding: 10px; border: 1px solid #e2e8f0; font-weight: bold;">Execution Tag</td>
-                        <td style="padding: 10px; border: 1px solid #e2e8f0; font-weight: bold; color: #2563eb;">${item.tag}</td>
+                        <td style="padding: 8px 10px; border: 1px solid #e2e8f0; font-weight: bold; color: #475569;">Hasil / Return</td>
+                        <td style="padding: 8px 10px; border: 1px solid #e2e8f0; color: #0f172a;">${item.returnVal}</td>
+                        <td style="padding: 8px 10px; border: 1px solid #e2e8f0; font-weight: bold; color: #475569;">Execution Tag</td>
+                        <td style="padding: 8px 10px; border: 1px solid #e2e8f0; font-weight: bold; color: #2563eb;">${item.tag}</td>
                     </tr>
                 </table>
 
-                <div style="margin-bottom: 20px; padding: 12px; border-left: 4px solid #3b82f6; background-color: #eff6ff;">
-                    <div style="font-size: 11px; font-weight: bold; color: #1d4ed8; text-transform: uppercase;">1. Main Outcome</div>
-                    <div style="font-size: 13px; font-weight: 600; color: #1e293b; margin: 4px 0;">${mainQ}</div>
-                    <div style="font-size: 14px; font-weight: bold; color: #0f172a;">Hasil: <span style="color: ${item.outcome === 'WIN' ? '#10b981' : item.outcome === 'LOSS' ? '#ef4444' : '#0284c7'};">${item.outcome}</span></div>
+                <div class="pdf-block" style="margin-bottom: 15px; padding: 10px 12px; border-left: 4px solid #3b82f6; background-color: #eff6ff; border-radius: 0 6px 6px 0;">
+                    <div style="font-size: 10px; font-weight: bold; color: #1d4ed8; text-transform: uppercase; tracking-wide;">1. Main Outcome</div>
+                    <div style="font-size: 12px; font-weight: 600; color: #1e293b; margin: 3px 0;">${mainQ}</div>
+                    <div style="font-size: 13px; font-weight: bold; color: #0f172a;">Hasil: <span style="color: ${item.outcome === 'WIN' ? '#10b981' : item.outcome === 'LOSS' ? '#ef4444' : '#0284c7'};">${item.outcome}</span></div>
                 </div>
 
-                <div style="margin-bottom: 20px; padding: 12px; border-left: 4px solid #6366f1; background-color: #f5f3ff;">
-                    <div style="font-size: 11px; font-weight: bold; color: #4338ca; text-transform: uppercase;">2. Decision Path</div>
-                    <div style="font-size: 13px; font-weight: 600; color: #1e293b; margin-top: 4px;">${branchQEn}</div>
-                    <div style="font-size: 12px; color: #64748b; italic; margin-bottom: 4px;">${branchQId}</div>
-                    <div style="font-size: 14px; font-weight: bold; color: #0f172a;">Jawaban: ${item.branchAnswer === 'YES' ? 'Yes / Ya' : 'No / Tidak'}</div>
+                <div class="pdf-block" style="margin-bottom: 18px; padding: 10px 12px; border-left: 4px solid #6366f1; background-color: #f5f3ff; border-radius: 0 6px 6px 0;">
+                    <div style="font-size: 10px; font-weight: bold; color: #4338ca; text-transform: uppercase;">2. Decision Path</div>
+                    <div style="font-size: 12px; font-weight: 600; color: #1e293b; margin-top: 3px;">${branchQEn}</div>
+                    <div style="font-size: 11px; color: #64748b; font-style: italic; margin-bottom: 3px;">${branchQId}</div>
+                    <div style="font-size: 13px; font-weight: bold; color: #0f172a;">Jawaban: ${item.branchAnswer === 'YES' ? 'Yes / Ya' : 'No / Tidak'}</div>
                 </div>
 
-                <div style="margin-top: 25px;">
-                    <h3 style="font-size: 15px; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px; color: #0f172a; margin-bottom: 15px;">3. Deep Dive Review Answers</h3>
+                <div style="margin-top: 20px;">
+                    <h3 style="font-size: 14px; border-bottom: 2px solid #cbd5e1; padding-bottom: 6px; color: #0f172a; margin-bottom: 12px; font-weight: bold;">3. Deep Dive Review Answers</h3>
                     ${item.qa.map((q, idx) => `
-                        <div style="margin-bottom: 16px; background-color: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0;">
-                            <div style="font-size: 13px; font-weight: bold; color: #1e293b;">Q${idx + 1}: ${q.questionEn}</div>
-                            <div style="font-size: 11px; color: #64748b; font-style: italic; margin-bottom: 8px;">${q.questionId}</div>
-                            <div style="font-size: 13px; color: #334155; white-space: pre-wrap; background-color: #ffffff; padding: 8px; border-radius: 4px; border: 1px solid #cbd5e1;">${q.answer || '<em>Tidak ada tanggapan tertulis</em>'}</div>
+                        <div class="pdf-block" style="margin-bottom: 12px; background-color: #f8fafc; padding: 10px 12px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                            <div style="font-size: 12px; font-weight: bold; color: #1e293b;">Q${idx + 1}: ${q.questionEn}</div>
+                            <div style="font-size: 11px; color: #64748b; font-style: italic; margin-bottom: 6px;">${q.questionId}</div>
+                            <div style="font-size: 12px; color: #334155; white-space: pre-wrap; background-color: #ffffff; padding: 8px; border-radius: 4px; border: 1px solid #cbd5e1; line-height: 1.4;">${q.answer || '<em style="color: #94a3b8;">Tidak ada tanggapan tertulis</em>'}</div>
                         </div>
                     `).join('')}
                 </div>
 
                 ${item.chartUrl ? `
-                    <div style="margin-top: 20px; font-size: 12px; color: #64748b;">
-                        <strong>Chart Link:</strong> <a href="${item.chartUrl}" style="color: #2563eb;">${item.chartUrl}</a>
+                    <div class="pdf-block" style="margin-top: 18px; padding: 10px 12px; background-color: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
+                        <div style="font-size: 11px; font-weight: bold; color: #475569; margin-bottom: 6px; text-transform: uppercase;">Chart Screenshot / Attachment</div>
+                        ${isImageUrl ? `
+                            <div style="text-align: center; margin-top: 6px;">
+                                <img src="${item.chartUrl}" crossorigin="anonymous" style="max-width: 100%; max-height: 380px; object-fit: contain; border-radius: 6px; border: 1px solid #cbd5e1;" alt="Chart Screenshot" />
+                            </div>
+                        ` : ''}
+                        <div style="font-size: 11px; color: #64748b; margin-top: 6px; word-break: break-all;">
+                            <strong>URL Link:</strong> <a href="${item.chartUrl}" target="_blank" style="color: #2563eb; text-decoration: underline;">${item.chartUrl}</a>
+                        </div>
                     </div>
                 ` : ''}
 
-                <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 10px; font-size: 10px; color: #94a3b8; text-align: center;">
+                <div class="pdf-block" style="margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 8px; font-size: 10px; color: #94a3b8; text-align: center;">
                     Generated via TradeReview Pro - Post Trade Evaluation Hub
                 </div>
             `;
 
+            document.body.appendChild(pdfContainer);
+
             const opt = {
-                margin:       10,
+                margin:       [8, 8, 8, 8],
                 filename:     `Trade_Review_${item.pair}_${item.date.slice(0,10)}.pdf`,
                 image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                html2canvas:  { 
+                    scale: 2, 
+                    useCORS: true,
+                    logging: false,
+                    windowWidth: 750
+                },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
             };
 
             html2pdf().set(opt).from(pdfContainer).save().then(() => {
+                document.body.removeChild(pdfContainer);
                 showToast('File PDF berhasil didownload!', 'success');
             }).catch(err => {
                 console.error(err);
+                if(document.getElementById('pdf-render-container')) {
+                    document.body.removeChild(pdfContainer);
+                }
                 showToast('Gagal mengunduh PDF', 'error');
             });
         }
