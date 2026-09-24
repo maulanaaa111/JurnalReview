@@ -821,22 +821,27 @@
                 loadingOverlay.classList.add('flex');
             }
 
+            // Simpan posisi scroll awal & scroll ke paling atas agar html2canvas menangkap seluruh area secara presisi
+            const savedScrollY = window.scrollY;
+            window.scrollTo(0, 0);
+
             const oldContainer = document.getElementById('pdf-render-container');
             if (oldContainer) oldContainer.remove();
 
-            // Render PDF container on active viewport foreground for html2canvas
+            // Render PDF container di posisi absolut teratas dokumen
             const pdfContainer = document.createElement('div');
             pdfContainer.id = 'pdf-render-container';
-            pdfContainer.style.width = '700px';
-            pdfContainer.style.padding = '30px';
+            pdfContainer.style.width = '750px';
+            pdfContainer.style.padding = '32px';
             pdfContainer.style.fontFamily = "'Inter', Arial, sans-serif";
-            pdfContainer.style.color = '#1e293b';
+            pdfContainer.style.color = '#0f172a';
             pdfContainer.style.backgroundColor = '#ffffff';
-            pdfContainer.style.position = 'fixed';
+            pdfContainer.style.position = 'absolute';
             pdfContainer.style.left = '0';
             pdfContainer.style.top = '0';
             pdfContainer.style.zIndex = '99990';
             pdfContainer.style.boxSizing = 'border-box';
+            pdfContainer.style.visibility = 'visible';
 
             const formattedDate = item.date ? new Date(item.date).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' }) : 'N/A';
             const mainQ = "Was the outcome of the trade a win or a loss? / Apakah hasil dari transaksi tersebut profit atau rugi?";
@@ -852,15 +857,16 @@
                         break-inside: avoid !important;
                     }
                     .pdf-card {
-                        background-color: #f8fafc;
-                        border: 1px solid #e2e8f0;
-                        border-radius: 8px;
-                        padding: 12px 14px;
-                        margin-bottom: 12px;
+                        background-color: #f8fafc !important;
+                        border: 1px solid #e2e8f0 !important;
+                        border-radius: 8px !important;
+                        padding: 12px 14px !important;
+                        margin-bottom: 12px !important;
+                        color: #0f172a !important;
                     }
                 </style>
 
-                <div class="pdf-block" style="border-bottom: 3px solid #2563eb; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <div class="pdf-block" style="border-bottom: 3px solid #2563eb; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; background-color: #ffffff;">
                     <div>
                         <h1 style="margin: 0; font-size: 20px; color: #0f172a; font-weight: 800;">Post-Trade Review Report</h1>
                         <p style="margin: 4px 0 0 0; color: #64748b; font-size: 11px; font-weight: 500;">TradeReview Pro Evaluation System</p>
@@ -870,7 +876,7 @@
                     </div>
                 </div>
 
-                <table class="pdf-block" style="width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: 11px; background-color: #f8fafc; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0;">
+                <table class="pdf-block" style="width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: 11px; background-color: #f8fafc; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; color: #0f172a;">
                     <tr>
                         <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-weight: bold; width: 25%; color: #475569; background-color: #f1f5f9;">Tanggal & Waktu</td>
                         <td style="padding: 8px 12px; border: 1px solid #e2e8f0; color: #0f172a; font-weight: 600;">${formattedDate}</td>
@@ -885,13 +891,13 @@
                     </tr>
                 </table>
 
-                <div class="pdf-block pdf-card" style="border-left: 4px solid #3b82f6;">
+                <div class="pdf-block pdf-card" style="border-left: 4px solid #3b82f6 !important;">
                     <div style="font-size: 10px; font-weight: 800; color: #1d4ed8; text-transform: uppercase;">1. Main Outcome</div>
                     <div style="font-size: 12px; font-weight: 700; color: #1e293b; margin: 4px 0;">${mainQ}</div>
-                    <div style="font-size: 12px; font-weight: 800; color: #0f172a;">Hasil: <span style="color: ${item.outcome === 'WIN' ? '#10b981' : item.outcome === 'LOSS' ? '#ef4444' : '#0284c7'};">${item.outcome}</span></div>
+                    <div style="font-size: 12px; font-weight: 800; color: #0f172a;">Hasil: <span style="color: ${item.outcome === 'WIN' ? '#059669' : item.outcome === 'LOSS' ? '#dc2626' : '#0284c7'};">${item.outcome}</span></div>
                 </div>
 
-                <div class="pdf-block pdf-card" style="border-left: 4px solid #6366f1;">
+                <div class="pdf-block pdf-card" style="border-left: 4px solid #6366f1 !important;">
                     <div style="font-size: 10px; font-weight: 800; color: #4338ca; text-transform: uppercase;">2. Decision Path</div>
                     <div style="font-size: 12px; font-weight: 700; color: #1e293b; margin-top: 4px;">${branchQEn}</div>
                     <div style="font-size: 11px; color: #64748b; font-style: italic; margin-bottom: 4px;">${branchQId}</div>
@@ -913,7 +919,7 @@
                     <div class="pdf-block pdf-card" style="margin-top: 14px;">
                         <div style="font-size: 10px; font-weight: 800; color: #475569; margin-bottom: 6px; text-transform: uppercase;">Chart Screenshot / Attachment</div>
                         <div style="text-align: center; margin: 8px 0; background-color: #0f172a; padding: 8px; border-radius: 6px;">
-                            <img id="pdfChartImage" src="${item.chartUrl}" crossorigin="anonymous" style="max-width: 100%; max-height: 320px; object-fit: contain; border-radius: 4px; display: inline-block;" alt="Chart Screenshot" />
+                            <img id="pdfChartImage" src="${item.chartUrl}" style="max-width: 100%; max-height: 300px; object-fit: contain; border-radius: 4px; display: inline-block;" alt="Chart Screenshot" />
                         </div>
                     </div>
                 ` : ''}
@@ -925,8 +931,16 @@
 
             document.body.appendChild(pdfContainer);
 
-            // Wait for image to fully load in DOM before triggering canvas conversion
-            const pdfImg = document.getElementById('pdfChartImage');
+            const cleanupAndRestore = () => {
+                const el = document.getElementById('pdf-render-container');
+                if (el) el.remove();
+                window.scrollTo(0, savedScrollY);
+                if (loadingOverlay) {
+                    loadingOverlay.classList.add('hidden');
+                    loadingOverlay.classList.remove('flex');
+                }
+            };
+
             const proceedWithPdf = () => {
                 setTimeout(() => {
                     const opt = {
@@ -936,40 +950,32 @@
                         html2canvas:  { 
                             scale: 2, 
                             useCORS: true,
-                            allowTaint: true,
+                            allowTaint: false,
                             logging: false,
                             scrollX: 0,
-                            scrollY: 0
+                            scrollY: 0,
+                            windowWidth: 800
                         },
                         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                        pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+                        pagebreak:    { mode: ['css', 'legacy'] }
                     };
 
                     html2pdf().set(opt).from(pdfContainer).save().then(() => {
-                        const el = document.getElementById('pdf-render-container');
-                        if(el) el.remove();
-                        if (loadingOverlay) {
-                            loadingOverlay.classList.add('hidden');
-                            loadingOverlay.classList.remove('flex');
-                        }
+                        cleanupAndRestore();
                         showToast('File PDF berhasil didownload!', 'success');
                     }).catch(err => {
                         console.error('PDF Generation Error:', err);
-                        const el = document.getElementById('pdf-render-container');
-                        if(el) el.remove();
-                        if (loadingOverlay) {
-                            loadingOverlay.classList.add('hidden');
-                            loadingOverlay.classList.remove('flex');
-                        }
+                        cleanupAndRestore();
                         showToast('Gagal mengunduh PDF. Coba lagi.', 'error');
                     });
                 }, 300);
             };
 
+            const pdfImg = document.getElementById('pdfChartImage');
             if (pdfImg && !pdfImg.complete) {
                 pdfImg.onload = proceedWithPdf;
                 pdfImg.onerror = () => {
-                    console.warn('Image failed to load, proceeding with PDF generation without image.');
+                    console.warn('Image failed to load, proceeding with PDF generation.');
                     proceedWithPdf();
                 };
             } else {
