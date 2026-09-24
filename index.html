@@ -992,39 +992,45 @@
             modal.classList.add('flex');
         }
 
-        /* ==================== PDF GENERATION FUNCTION ==================== */
+        /* ==================== FIXED PDF GENERATION FUNCTION ==================== */
         function downloadPDF(item) {
             showToast('Sedang membuat file PDF...', 'info');
 
-            // Construct printable html document off-screen with fixed width and page-break guards
+            // Remove existing render container if present
+            const oldContainer = document.getElementById('pdf-render-container');
+            if(oldContainer) oldContainer.remove();
+
+            // Construct printable container placed at top-left with negative z-index so html2canvas captures valid coordinates
             const pdfContainer = document.createElement('div');
             pdfContainer.id = 'pdf-render-container';
-            pdfContainer.style.width = '700px';
-            pdfContainer.style.padding = '25px';
-            pdfContainer.style.fontFamily = "'Helvetica', 'Arial', sans-serif";
+            pdfContainer.style.width = '750px';
+            pdfContainer.style.padding = '30px';
+            pdfContainer.style.fontFamily = "'Inter', 'Helvetica', 'Arial', sans-serif";
             pdfContainer.style.color = '#0f172a';
             pdfContainer.style.backgroundColor = '#ffffff';
-            pdfContainer.style.position = 'absolute';
-            pdfContainer.style.left = '-9999px';
+            pdfContainer.style.position = 'fixed';
+            pdfContainer.style.left = '0';
             pdfContainer.style.top = '0';
+            pdfContainer.style.zIndex = '-9999';
+            pdfContainer.style.boxSizing = 'border-box';
 
             const formattedDate = new Date(item.date).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' });
             const mainQ = "Was the outcome of the trade a win or a loss? / Apakah hasil dari transaksi tersebut profit atau rugi?";
             const branchQEn = QUESTION_TREE[item.outcome] ? QUESTION_TREE[item.outcome].branchQuestionEn : '';
             const branchQId = QUESTION_TREE[item.outcome] ? QUESTION_TREE[item.outcome].branchQuestionId : '';
 
-            // Helper to check if URL might be an image
-            const isImageUrl = item.chartUrl && (item.chartUrl.match(/\.(jpeg|jpg|gif|png|webp)/i) || item.chartUrl.includes('tradingview.com/x/'));
+            // Direct image URL check (png, jpg, webp)
+            const isImageUrl = item.chartUrl && item.chartUrl.match(/\.(jpeg|jpg|gif|png|webp)($|\?)/i);
 
             pdfContainer.innerHTML = `
                 <style>
-                    .pdf-block {
+                    .pdf-page-block {
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
                     }
                 </style>
 
-                <div class="pdf-block" style="border-bottom: 3px solid #2563eb; padding-bottom: 12px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: flex-start;">
+                <div class="pdf-page-block" style="border-bottom: 3px solid #2563eb; padding-bottom: 12px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: flex-start;">
                     <div>
                         <h1 style="margin: 0; font-size: 22px; color: #1e293b; font-weight: bold;">Post-Trade Review Report</h1>
                         <p style="margin: 4px 0 0 0; color: #64748b; font-size: 12px;">TradeReview Pro Evaluation Sheet</p>
@@ -1034,7 +1040,7 @@
                     </div>
                 </div>
 
-                <table class="pdf-block" style="width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: 12px; background-color: #f8fafc; border-radius: 8px; overflow: hidden;">
+                <table class="pdf-page-block" style="width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: 12px; background-color: #f8fafc; border-radius: 8px; overflow: hidden;">
                     <tr>
                         <td style="padding: 8px 10px; border: 1px solid #e2e8f0; font-weight: bold; width: 25%; color: #475569;">Tanggal & Waktu</td>
                         <td style="padding: 8px 10px; border: 1px solid #e2e8f0; color: #0f172a;">${formattedDate}</td>
@@ -1049,23 +1055,23 @@
                     </tr>
                 </table>
 
-                <div class="pdf-block" style="margin-bottom: 15px; padding: 10px 12px; border-left: 4px solid #3b82f6; background-color: #eff6ff; border-radius: 0 6px 6px 0;">
-                    <div style="font-size: 10px; font-weight: bold; color: #1d4ed8; text-transform: uppercase; tracking-wide;">1. Main Outcome</div>
+                <div class="pdf-page-block" style="margin-bottom: 14px; padding: 10px 12px; border-left: 4px solid #3b82f6; background-color: #eff6ff; border-radius: 0 6px 6px 0;">
+                    <div style="font-size: 10px; font-weight: bold; color: #1d4ed8; text-transform: uppercase;">1. Main Outcome</div>
                     <div style="font-size: 12px; font-weight: 600; color: #1e293b; margin: 3px 0;">${mainQ}</div>
                     <div style="font-size: 13px; font-weight: bold; color: #0f172a;">Hasil: <span style="color: ${item.outcome === 'WIN' ? '#10b981' : item.outcome === 'LOSS' ? '#ef4444' : '#0284c7'};">${item.outcome}</span></div>
                 </div>
 
-                <div class="pdf-block" style="margin-bottom: 18px; padding: 10px 12px; border-left: 4px solid #6366f1; background-color: #f5f3ff; border-radius: 0 6px 6px 0;">
+                <div class="pdf-page-block" style="margin-bottom: 18px; padding: 10px 12px; border-left: 4px solid #6366f1; background-color: #f5f3ff; border-radius: 0 6px 6px 0;">
                     <div style="font-size: 10px; font-weight: bold; color: #4338ca; text-transform: uppercase;">2. Decision Path</div>
                     <div style="font-size: 12px; font-weight: 600; color: #1e293b; margin-top: 3px;">${branchQEn}</div>
                     <div style="font-size: 11px; color: #64748b; font-style: italic; margin-bottom: 3px;">${branchQId}</div>
                     <div style="font-size: 13px; font-weight: bold; color: #0f172a;">Jawaban: ${item.branchAnswer === 'YES' ? 'Yes / Ya' : 'No / Tidak'}</div>
                 </div>
 
-                <div style="margin-top: 20px;">
+                <div style="margin-top: 15px;">
                     <h3 style="font-size: 14px; border-bottom: 2px solid #cbd5e1; padding-bottom: 6px; color: #0f172a; margin-bottom: 12px; font-weight: bold;">3. Deep Dive Review Answers</h3>
                     ${item.qa.map((q, idx) => `
-                        <div class="pdf-block" style="margin-bottom: 12px; background-color: #f8fafc; padding: 10px 12px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                        <div class="pdf-page-block" style="margin-bottom: 12px; background-color: #f8fafc; padding: 10px 12px; border-radius: 6px; border: 1px solid #e2e8f0;">
                             <div style="font-size: 12px; font-weight: bold; color: #1e293b;">Q${idx + 1}: ${q.questionEn}</div>
                             <div style="font-size: 11px; color: #64748b; font-style: italic; margin-bottom: 6px;">${q.questionId}</div>
                             <div style="font-size: 12px; color: #334155; white-space: pre-wrap; background-color: #ffffff; padding: 8px; border-radius: 4px; border: 1px solid #cbd5e1; line-height: 1.4;">${q.answer || '<em style="color: #94a3b8;">Tidak ada tanggapan tertulis</em>'}</div>
@@ -1074,50 +1080,54 @@
                 </div>
 
                 ${item.chartUrl ? `
-                    <div class="pdf-block" style="margin-top: 18px; padding: 10px 12px; background-color: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
-                        <div style="font-size: 11px; font-weight: bold; color: #475569; margin-bottom: 6px; text-transform: uppercase;">Chart Screenshot / Attachment</div>
+                    <div class="pdf-page-block" style="margin-top: 15px; padding: 10px 12px; background-color: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
+                        <div style="font-size: 11px; font-weight: bold; color: #475569; margin-bottom: 6px; text-transform: uppercase;">Chart Screenshot / Link Attachment</div>
                         ${isImageUrl ? `
                             <div style="text-align: center; margin-top: 6px;">
-                                <img src="${item.chartUrl}" crossorigin="anonymous" style="max-width: 100%; max-height: 380px; object-fit: contain; border-radius: 6px; border: 1px solid #cbd5e1;" alt="Chart Screenshot" />
+                                <img src="${item.chartUrl}" crossorigin="anonymous" style="max-width: 100%; max-height: 350px; object-fit: contain; border-radius: 6px; border: 1px solid #cbd5e1;" alt="Chart Screenshot" />
                             </div>
                         ` : ''}
                         <div style="font-size: 11px; color: #64748b; margin-top: 6px; word-break: break-all;">
-                            <strong>URL Link:</strong> <a href="${item.chartUrl}" target="_blank" style="color: #2563eb; text-decoration: underline;">${item.chartUrl}</a>
+                            <strong>URL:</strong> <a href="${item.chartUrl}" target="_blank" style="color: #2563eb; text-decoration: underline;">${item.chartUrl}</a>
                         </div>
                     </div>
                 ` : ''}
 
-                <div class="pdf-block" style="margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 8px; font-size: 10px; color: #94a3b8; text-align: center;">
+                <div class="pdf-page-block" style="margin-top: 25px; border-top: 1px solid #e2e8f0; padding-top: 8px; font-size: 10px; color: #94a3b8; text-align: center;">
                     Generated via TradeReview Pro - Post Trade Evaluation Hub
                 </div>
             `;
 
             document.body.appendChild(pdfContainer);
 
-            const opt = {
-                margin:       [8, 8, 8, 8],
-                filename:     `Trade_Review_${item.pair}_${item.date.slice(0,10)}.pdf`,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { 
-                    scale: 2, 
-                    useCORS: true,
-                    logging: false,
-                    windowWidth: 750
-                },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
-            };
+            // Allow DOM engine to render the frame before capturing html2canvas
+            setTimeout(() => {
+                const opt = {
+                    margin:       [10, 10, 10, 10],
+                    filename:     `Trade_Review_${item.pair}_${item.date.slice(0,10)}.pdf`,
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { 
+                        scale: 2, 
+                        useCORS: true,
+                        logging: false,
+                        scrollX: 0,
+                        scrollY: 0
+                    },
+                    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                    pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+                };
 
-            html2pdf().set(opt).from(pdfContainer).save().then(() => {
-                document.body.removeChild(pdfContainer);
-                showToast('File PDF berhasil didownload!', 'success');
-            }).catch(err => {
-                console.error(err);
-                if(document.getElementById('pdf-render-container')) {
-                    document.body.removeChild(pdfContainer);
-                }
-                showToast('Gagal mengunduh PDF', 'error');
-            });
+                html2pdf().set(opt).from(pdfContainer).save().then(() => {
+                    const el = document.getElementById('pdf-render-container');
+                    if(el) el.remove();
+                    showToast('File PDF berhasil didownload!', 'success');
+                }).catch(err => {
+                    console.error(err);
+                    const el = document.getElementById('pdf-render-container');
+                    if(el) el.remove();
+                    showToast('Gagal mengunduh PDF', 'error');
+                });
+            }, 150);
         }
 
         function downloadPDFById(id) {
