@@ -504,157 +504,168 @@
         <span id="toastMsg">Notification Message</span>
     </div>
 
+    <!-- PDF Loading Spinner Overlay -->
+    <div id="pdfLoadingOverlay" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md hidden items-center justify-center flex-col gap-4 z-[99999] fade-in">
+        <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        <div class="text-center">
+            <h4 class="text-white font-bold text-base">Membuat Dokumen PDF...</h4>
+            <p class="text-gray-400 text-xs mt-1">Mohon tunggu sebentar, laporan sedang diproses.</p>
+        </div>
+    </div>
+
     <script>
         /* ==================== QUESTION DATA STORE ==================== */
-        const QUESTION_TREE = {
-            WIN: {
-                titleEn: "Bagian 1: Win (Profit)",
-                titleId: "Bagian 1: Profit",
-                branchQuestionEn: "Is this a trade you would take again without knowing the outcome was a win?",
-                branchQuestionId: "Apakah ini jenis transaksi yang tetap akan kamu ambil tanpa tahu bahwa hasilnya bakal profit?",
-                YES: {
-                    tag: "Good Win (Disciplined Execution)",
-                    questions: [
-                        {
-                            en: "What would you improve with your execution on this trade?",
-                            id: "Apa yang ingin kamu tingkatkan dari eksekusimu pada transaksi ini?"
-                        },
-                        {
-                            en: "How could you have managed this trade to increase the profit?",
-                            id: "Bagaimana kamu bisa mengelola transaksi ini agar bisa memperbesar profit?"
-                        },
-                        {
-                            en: "What can you do to repeat this type of trade in the future?",
-                            id: "Apa yang bisa kamu lakukan untuk mengulangi jenis transaksi seperti ini di masa depan?"
-                        }
-                    ]
-                },
-                NO: {
-                    tag: "Flawed Win (Bad Process / Lucky Win)",
-                    questions: [
-                        {
-                            en: "Where did you deviate from your plan or approach and why?",
-                            id: "Di bagian mana kamu menyimpang dari rencana atau metodemu, dan mengapa?"
-                        },
-                        {
-                            en: "How could this flawed win have been avoided in the future?",
-                            id: "Bagaimana profit yang bercelah/cacat ini bisa dihindari di masa depan?"
-                        },
-                        {
-                            en: "What specifically was done incorrectly in this trade despite the outcome?",
-                            id: "Apa hal spesifik yang dilakukan secara salah pada transaksi ini terlepas dari hasilnya?"
-                        }
-                    ]
-                }
-            },
-            LOSS: {
-                titleEn: "Bagian 2: Loss (Rugi)",
-                titleId: "Bagian 2: Rugi",
-                branchQuestionEn: "Is this a trade you would take again without knowing the outcome was a loss?",
-                branchQuestionId: "Apakah ini jenis transaksi yang tetap akan kamu ambil tanpa tahu bahwa hasilnya bakal rugi?",
-                YES: {
-                    tag: "Good Loss (System Loss / Disciplined)",
-                    questions: [
-                        {
-                            en: "Was there any logical way to avoid this loss in the moment?",
-                            id: "Apakah ada cara logis untuk menghindari kerugian ini saat kejadian?"
-                        },
-                        {
-                            en: "What specifically was done well in this trade despite the outcome?",
-                            id: "Apa hal spesifik yang sudah dilakukan dengan baik pada transaksi ini terlepas dari hasilnya?"
-                        },
-                        {
-                            en: "Were emotions controlled after this losing trade was realized?",
-                            id: "Apakah emosimu tetap terkendali setelah kerugian pada transaksi ini terjadi?"
-                        }
-                    ]
-                },
-                NO: {
-                    tag: "Bad Loss (Rule Breach / Emotional Trade)",
-                    questions: [
-                        {
-                            en: "Where did you deviate from your plan or approach and why?",
-                            id: "Di bagian mana kamu menyimpang dari rencana atau metodemu, dan mengapa?"
-                        },
-                        {
-                            en: "What were the warning signs that led into this losing trade?",
-                            id: "Apa saja tanda-tanda peringatan yang mengarah ke transaksi yang rugi ini?"
-                        },
-                        {
-                            en: "Did your response to the outcome of this trade impact following trades?",
-                            id: "Apakah reaksimu terhadap hasil transaksi ini memengaruhi transaksi-transaksi berikutnya?"
-                        }
-                    ]
-                }
-            },
-            NO_TRADES: {
-                titleEn: "Bagian 3: No Trades (Tidak Ada Transaksi)",
-                titleId: "Bagian 3: Tidak Ada Transaksi",
-                branchQuestionEn: "Were there any valid trades that you missed during the trading day?",
-                branchQuestionId: "Apakah ada transaksi yang valid yang terlewat olehmu selama hari trading tersebut?",
-                NO: {
-                    tag: "Disciplined Inactivity (Good Patience)",
-                    questions: [
-                        {
-                            en: "What conditions were missing that prevented a valid setup?",
-                            id: "Kondisi apa yang kurang sehingga tidak terbentuk setup yang valid?"
-                        },
-                        {
-                            en: "What reinforced your confidence to remain inactive today?",
-                            id: "Apa yang memperkuat keyakinanmu untuk tetap tidak masuk ke pasar hari ini?"
-                        },
-                        {
-                            en: "Did avoiding unnecessary risk protect your mental clarity or capital?",
-                            id: "Apakah menghindari risiko yang tidak perlu berhasil menjaga kejelasan mental atau modalmu?"
-                        }
-                    ]
-                },
-                YES: {
-                    tag: "Missed Opportunity (Hesitation / Process Issue)",
-                    questions: [
-                        {
-                            en: "What specifically caused you to miss the valid opportunity?",
-                            id: "Apa hal spesifik yang menyebabkan kamu melewatkan peluang yang valid tersebut?"
-                        },
-                        {
-                            en: "Was the setup identified in real time or only recognized afterward?",
-                            id: "Apakah setup tersebut teridentifikasi secara real-time atau baru disadari belakangan?"
-                        },
-                        {
-                            en: "What process improvement would have allowed execution?",
-                            id: "Perbaikan proses seperti apa yang memungkinkanmu untuk melakukan eksekusi?"
-                        }
-                    ]
-                }
+        /* ==================== BULLETPROOF PDF GENERATION ==================== */
+        function downloadPDF(item) {
+            const loadingOverlay = document.getElementById('pdfLoadingOverlay');
+            if (loadingOverlay) {
+                loadingOverlay.classList.remove('hidden');
+                loadingOverlay.classList.add('flex');
             }
-        };
 
-        let journals = JSON.parse(localStorage.getItem('trade_reviews_data') || '[]');
-        let selectedOutcome = null; // 'WIN' | 'LOSS' | 'NO_TRADES'
-        let selectedBranchAnswer = null; // 'YES' | 'NO'
+            // Hapus container render lama jika ada
+            const oldContainer = document.getElementById('pdf-render-container');
+            if (oldContainer) oldContainer.remove();
 
-        // Set default date to local now
-        document.addEventListener('DOMContentLoaded', () => {
-            const now = new Date();
-            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            document.getElementById('tradeDate').value = now.toISOString().slice(0, 16);
-            updateBadges();
-            renderHistoryList();
-            renderAnalytics();
-        });
+            // Buat printable container baru
+            const pdfContainer = document.createElement('div');
+            pdfContainer.id = 'pdf-render-container';
+            pdfContainer.style.width = '750px';
+            pdfContainer.style.padding = '32px';
+            pdfContainer.style.fontFamily = "'Inter', 'Helvetica', 'Arial', sans-serif";
+            pdfContainer.style.color = '#0f172a';
+            pdfContainer.style.backgroundColor = '#ffffff';
+            pdfContainer.style.position = 'fixed';
+            pdfContainer.style.left = '0';
+            pdfContainer.style.top = '0';
+            pdfContainer.style.zIndex = '99998'; // Tepat di bawah loading overlay
+            pdfContainer.style.boxSizing = 'border-box';
+            pdfContainer.style.visibility = 'visible';
+            pdfContainer.style.opacity = '1';
 
-        function switchTab(tabId) {
-            document.querySelectorAll('section[id^="view-"]').forEach(sec => sec.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            const formattedDate = item.date ? new Date(item.date).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' }) : 'N/A';
+            const mainQ = "Was the outcome of the trade a win or a loss? / Apakah hasil dari transaksi tersebut profit atau rugi?";
+            const branchQEn = QUESTION_TREE[item.outcome] ? QUESTION_TREE[item.outcome].branchQuestionEn : '';
+            const branchQId = QUESTION_TREE[item.outcome] ? QUESTION_TREE[item.outcome].branchQuestionId : '';
 
-            document.getElementById(`view-${tabId}`).classList.remove('hidden');
-            document.getElementById(`nav-${tabId}`).classList.add('active');
+            const isImageUrl = item.chartUrl && item.chartUrl.match(/\.(jpeg|jpg|gif|png|webp)($|\?)/i);
 
-            if(tabId === 'history') {
-                renderHistoryList();
-            } else if(tabId === 'analytics') {
-                renderAnalytics();
-            }
+            pdfContainer.innerHTML = `
+                <style>
+                    .pdf-block {
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
+                    }
+                </style>
+
+                <div class="pdf-block" style="border-bottom: 3px solid #2563eb; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <h1 style="margin: 0; font-size: 22px; color: #0f172a; font-weight: 800;">Post-Trade Review Report</h1>
+                        <p style="margin: 4px 0 0 0; color: #64748b; font-size: 12px; font-weight: 500;">TradeReview Pro Evaluation System</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="display: inline-block; padding: 6px 14px; background-color: #f1f5f9; border-radius: 20px; font-weight: 700; font-size: 13px; color: #2563eb; border: 1px solid #cbd5e1;">${item.pair || 'GENERAL'}</span>
+                    </div>
+                </div>
+
+                <table class="pdf-block" style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; background-color: #f8fafc; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0;">
+                    <tr>
+                        <td style="padding: 10px 12px; border: 1px solid #e2e8f0; font-weight: bold; width: 25%; color: #475569; background-color: #f1f5f9;">Tanggal & Waktu</td>
+                        <td style="padding: 10px 12px; border: 1px solid #e2e8f0; color: #0f172a; font-weight: 600;">${formattedDate}</td>
+                        <td style="padding: 10px 12px; border: 1px solid #e2e8f0; font-weight: bold; width: 25%; color: #475569; background-color: #f1f5f9;">Posisi / Arah</td>
+                        <td style="padding: 10px 12px; border: 1px solid #e2e8f0; color: #0f172a; font-weight: 600;">${item.direction || 'N/A'}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px 12px; border: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #f1f5f9;">Hasil / Return</td>
+                        <td style="padding: 10px 12px; border: 1px solid #e2e8f0; color: #0f172a; font-weight: 600;">${item.returnVal || 'N/A'}</td>
+                        <td style="padding: 10px 12px; border: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #f1f5f9;">Execution Tag</td>
+                        <td style="padding: 10px 12px; border: 1px solid #e2e8f0; font-weight: bold; color: #2563eb;">${item.tag || 'N/A'}</td>
+                    </tr>
+                </table>
+
+                <div class="pdf-block" style="margin-bottom: 16px; padding: 12px 16px; border-left: 4px solid #3b82f6; background-color: #eff6ff; border-radius: 0 8px 8px 0; border-top: 1px solid #dbeafe; border-right: 1px solid #dbeafe; border-bottom: 1px solid #dbeafe;">
+                    <div style="font-size: 10px; font-weight: 800; color: #1d4ed8; text-transform: uppercase;">1. Main Outcome</div>
+                    <div style="font-size: 13px; font-weight: 700; color: #1e293b; margin: 4px 0;">${mainQ}</div>
+                    <div style="font-size: 13px; font-weight: 800; color: #0f172a; margin-top: 4px;">Hasil: <span style="color: ${item.outcome === 'WIN' ? '#10b981' : item.outcome === 'LOSS' ? '#ef4444' : '#0284c7'};">${item.outcome}</span></div>
+                </div>
+
+                <div class="pdf-block" style="margin-bottom: 20px; padding: 12px 16px; border-left: 4px solid #6366f1; background-color: #f5f3ff; border-radius: 0 8px 8px 0; border-top: 1px solid #ede9fe; border-right: 1px solid #ede9fe; border-bottom: 1px solid #ede9fe;">
+                    <div style="font-size: 10px; font-weight: 800; color: #4338ca; text-transform: uppercase;">2. Decision Path</div>
+                    <div style="font-size: 13px; font-weight: 700; color: #1e293b; margin-top: 4px;">${branchQEn}</div>
+                    <div style="font-size: 11px; color: #64748b; font-style: italic; margin-bottom: 4px;">${branchQId}</div>
+                    <div style="font-size: 13px; font-weight: 800; color: #0f172a;">Jawaban: ${item.branchAnswer === 'YES' ? 'Yes / Ya' : 'No / Tidak'}</div>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <h3 class="pdf-block" style="font-size: 14px; border-bottom: 2px solid #cbd5e1; padding-bottom: 6px; color: #0f172a; margin-bottom: 14px; font-weight: 800;">3. Deep Dive Review Answers</h3>
+                    ${(item.qa || []).map((q, idx) => `
+                        <div class="pdf-block" style="margin-bottom: 14px; background-color: #f8fafc; padding: 12px 14px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                            <div style="font-size: 12px; font-weight: 700; color: #1e293b;">Q${idx + 1}: ${q.questionEn}</div>
+                            <div style="font-size: 11px; color: #64748b; font-style: italic; margin-bottom: 8px;">${q.questionId}</div>
+                            <div style="font-size: 12px; color: #334155; white-space: pre-wrap; background-color: #ffffff; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; line-height: 1.5; font-family: sans-serif;">${q.answer ? q.answer : '<em style="color: #94a3b8;">Tidak ada tanggapan tertulis</em>'}</div>
+                        </div>
+                    `).join('')}
+                </div>
+
+                ${item.chartUrl ? `
+                    <div class="pdf-block" style="margin-top: 18px; padding: 12px 14px; background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        <div style="font-size: 11px; font-weight: 800; color: #475569; margin-bottom: 6px; text-transform: uppercase;">Chart Screenshot / Attachment</div>
+                        ${isImageUrl ? `
+                            <div style="text-align: center; margin-top: 8px; margin-bottom: 8px;">
+                                <img src="${item.chartUrl}" crossorigin="anonymous" style="max-width: 100%; max-height: 380px; object-fit: contain; border-radius: 6px; border: 1px solid #cbd5e1;" alt="Chart Screenshot" />
+                            </div>
+                        ` : ''}
+                        <div style="font-size: 11px; color: #64748b; word-break: break-all;">
+                            <strong>URL:</strong> <a href="${item.chartUrl}" target="_blank" style="color: #2563eb; text-decoration: underline;">${item.chartUrl}</a>
+                        </div>
+                    </div>
+                ` : ''}
+
+                <div class="pdf-block" style="margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 10px; font-size: 10px; color: #94a3b8; text-align: center;">
+                    Generated via TradeReview Pro - Post Trade Evaluation Hub
+                </div>
+            `;
+
+            document.body.appendChild(pdfContainer);
+
+            // Berikan waktu 350ms agar DOM ter-render sempurna
+            setTimeout(() => {
+                const opt = {
+                    margin:       [10, 10, 10, 10],
+                    filename:     `Trade_Review_${(item.pair || 'TRADE').replace(/[^a-zA-Z0-9]/g, '_')}_${(item.date || '').slice(0,10)}.pdf`,
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { 
+                        scale: 2, 
+                        useCORS: true,
+                        allowTaint: true,
+                        logging: false,
+                        scrollX: 0,
+                        scrollY: 0,
+                        windowWidth: 750
+                    },
+                    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                    pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+                };
+
+                html2pdf().set(opt).from(pdfContainer).save().then(() => {
+                    const el = document.getElementById('pdf-render-container');
+                    if(el) el.remove();
+                    if (loadingOverlay) {
+                        loadingOverlay.classList.add('hidden');
+                        loadingOverlay.classList.remove('flex');
+                    }
+                    showToast('File PDF berhasil didownload!', 'success');
+                }).catch(err => {
+                    console.error('PDF Generation Error:', err);
+                    const el = document.getElementById('pdf-render-container');
+                    if(el) el.remove();
+                    if (loadingOverlay) {
+                        loadingOverlay.classList.add('hidden');
+                        loadingOverlay.classList.remove('flex');
+                    }
+                    showToast('Gagal mengunduh PDF. Coba lagi.', 'error');
+                });
+            }, 350);
         }
 
         function onOutcomeChange(outcome) {
