@@ -3,1332 +3,1032 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Post-Trade Evaluation Hub | Trading Review Pro</title>
-    <!-- Tailwind CSS -->
+    <title>Trading Review & Execution Journal</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts Inter & JetBrains Mono -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600" rel="stylesheet">
-    <!-- html2pdf Library for PDF Generation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'monospace'],
-                    },
                     colors: {
                         brand: {
-                            dark: '#0B0F17',
-                            card: '#151D2A',
-                            border: '#232E42',
-                            accent: '#3B82F6',
-                            win: '#10B981',
-                            loss: '#EF4444',
-                            neutral: '#6B7280'
-                        }
+                            50: '#f0fdf4',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            900: '#14532d'
+                        },
+                        darkbg: '#0B0F17',
+                        cardbg: '#131B2E',
+                        cardborder: '#1E293B',
+                        accentwin: '#10B981',
+                        accentloss: '#EF4444',
+                        accentnotrade: '#F59E0B'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
                     }
                 }
             }
         }
     </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- html2pdf.js Bundle for high-quality PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
         body {
+            font-family: 'Inter', sans-serif;
             background-color: #0B0F17;
-            color: #F3F4F6;
+            color: #E2E8F0;
+        }
+
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0B0F17;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1E293B;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+
+        /* PDF Render Template Styling - Prevents text clipping & ensures proper multipage breaks */
+        #pdf-render-area {
+            display: none;
+            width: 800px;
+            padding: 30px;
+            background-color: #ffffff;
+            color: #0f172a;
             font-family: 'Inter', sans-serif;
         }
-        
-        .glass-panel {
-            background: rgba(21, 29, 42, 0.75);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+
+        .pdf-page-block {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            margin-bottom: 20px;
         }
 
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: rgba(15, 23, 42, 0.6);
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #232E42;
-            border-radius: 9999px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #3B82F6;
+        .pdf-text-content {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            word-break: break-word;
+            line-height: 1.6;
+            color: #1e293b;
         }
 
-        .tab-btn.active {
-            border-bottom: 2px solid #3B82F6;
-            color: #3B82F6;
-            font-weight: 600;
-        }
-
-        .fade-in {
-            animation: fadeIn 0.3s ease-in-out forwards;
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-in-out;
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
+            from { opacity: 0; transform: translateY(6px); }
             to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between custom-scrollbar bg-[#0B0F17] text-gray-100">
+<body class="min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-white">
 
-    <header class="border-b border-brand-border/60 sticky top-0 z-50 glass-panel">
+    <header class="border-b border-slate-800 bg-[#0d1322]/80 backdrop-blur-md sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                    <i class="fa-solid fa-chart-line text-white text-lg"></i>
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 font-bold text-xl shadow-lg shadow-emerald-500/20">
+                    <i class="fa-solid me-0.5 fa-chart-line"></i>
                 </div>
                 <div>
-                    <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
-                        TradeReview <span class="text-xs bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-full uppercase font-mono">Pro</span>
-                    </h1>
-                    <p class="text-xs text-gray-400 hidden sm:block">Post-Trade Evaluation System</p>
+                    <h1 class="font-bold text-lg leading-tight text-slate-100">Trade Execution Review</h1>
+                    <p class="text-xs text-slate-400">Journal & Performance Optimizer</p>
                 </div>
             </div>
 
-            <!-- Navigation Tabs -->
-            <nav class="flex space-x-1 sm:space-x-4">
-                <button onclick="switchTab('new-review')" id="nav-new-review" class="tab-btn active px-3 py-2 text-sm text-gray-300 hover:text-white transition flex items-center gap-2">
-                    <i class="fa-solid fa-pen-to-square"></i>
-                    <span class="hidden md:inline">Evaluasi Baru</span>
+            <div class="flex items-center gap-2">
+                <button id="nav-new-btn" onclick="switchTab('review')" class="px-3.5 py-1.5 text-xs sm:text-sm font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center gap-2 shadow-md shadow-emerald-600/20">
+                    <i class="fa-solid fa-plus"></i> <span class="hidden sm:inline">Review Baru</span>
                 </button>
-                <button onclick="switchTab('history')" id="nav-history" class="tab-btn px-3 py-2 text-sm text-gray-400 hover:text-white transition flex items-center gap-2">
-                    <i class="fa-solid fa-folder-open"></i>
-                    <span class="hidden md:inline">Riwayat Jurnal</span>
-                    <span id="journal-count-badge" class="bg-gray-800 text-gray-300 text-xs px-2 py-0.5 rounded-full font-mono">0</span>
+                <button id="nav-history-btn" onclick="switchTab('history')" class="px-3.5 py-1.5 text-xs sm:text-sm font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition flex items-center gap-2 border border-slate-700">
+                    <i class="fa-solid fa-folder-open"></i> <span class="hidden sm:inline">Riwayat Journal</span> (<span id="history-count-badge">0</span>)
                 </button>
-                <button onclick="switchTab('analytics')" id="nav-analytics" class="tab-btn px-3 py-2 text-sm text-gray-400 hover:text-white transition flex items-center gap-2">
-                    <i class="fa-solid fa-chart-pie"></i>
-                    <span class="hidden md:inline">Statistik</span>
+                <button onclick="exportJSONBackup()" title="Backup Data JSON" class="p-2 text-xs sm:text-sm rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700">
+                    <i class="fa-solid fa-download"></i>
                 </button>
-            </nav>
+            </div>
         </div>
     </header>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+    <main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
 
-        <section id="view-new-review" class="fade-in space-y-6">
-            <!-- Form Header Banner -->
-            <div class="glass-panel p-6 rounded-2xl border border-brand-border relative overflow-hidden">
-                <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
-                <div class="max-w-3xl">
-                    <h2 class="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-                        Post-Trade Execution Review
-                    </h2>
-                    <p class="text-sm text-gray-400 mt-1">
-                        Review objektif hasil transaksimu untuk mengeliminasi bias emosional dan menyempurnakan eksekusi sistem trading.
-                    </p>
+        <!-- VIEW 1: REVIEW FORM -->
+        <div id="view-review" class="animate-fade-in space-y-6">
+            
+            <!-- Metadata Card -->
+            <div class="bg-cardbg border border-cardborder rounded-2xl p-5 sm:p-6 shadow-xl relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1.5 h-full bg-emerald-500"></div>
+                <h2 class="text-lg font-semibold text-slate-100 mb-4 flex items-center gap-2">
+                    <i class="fa-regular fa-id-card text-emerald-400"></i> Informasi Transaksi / Sesi
+                </h2>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Tanggal & Waktu</label>
+                        <input type="datetime-local" id="meta-date" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Pair / Ticker (e.g. XAUUSD, BTC)</label>
+                        <input type="text" id="meta-pair" placeholder="contoh: XAUUSD / EURUSD" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 uppercase">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Sesi Trading</label>
+                        <select id="meta-session" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500">
+                            <option value="Asia">Asia Session</option>
+                            <option value="London">London Session</option>
+                            <option value="New York" selected>New York Session</option>
+                            <option value="Overlap">London / NY Overlap</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Risk : Reward (opsional)</label>
+                        <input type="text" id="meta-rr" placeholder="contoh: 1:2.5" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+
+                <!-- Screenshot Attachment -->
+                <div class="mt-4 pt-4 border-t border-slate-800">
+                    <label class="block text-xs font-medium text-slate-400 mb-2">Lampirkan Screenshot Chart (opsional)</label>
+                    <div class="flex items-center gap-4">
+                        <label class="cursor-pointer bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg px-4 py-2 text-xs font-medium text-slate-300 flex items-center gap-2 transition">
+                            <i class="fa-solid fa-image text-emerald-400"></i> Pilih Gambar Chart
+                            <input type="file" id="chart-image-input" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
+                        </label>
+                        <span id="image-filename" class="text-xs text-slate-500 italic truncate max-w-xs">Belum ada gambar terpilih</span>
+                        <button id="remove-img-btn" onclick="removeImage()" class="hidden text-xs text-red-400 hover:underline">Hapus</button>
+                    </div>
+                    <div id="image-preview-container" class="mt-3 hidden">
+                        <img id="image-preview" src="" alt="Chart Preview" class="max-h-48 rounded-lg border border-slate-700 object-cover">
+                    </div>
                 </div>
             </div>
 
-            <form id="tradeForm" onsubmit="handleFormSubmit(event)" class="space-y-6">
-                <div class="glass-panel p-6 rounded-2xl border border-brand-border space-y-4">
-                    <h3 class="text-sm font-semibold uppercase tracking-wider text-blue-400 flex items-center gap-2">
-                        <i class="fa-solid fa-circle-info"></i> Info Transaksi
-                    </h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div>
-                            <label class="block text-xs font-medium text-gray-400 mb-1">Tanggal & Waktu</label>
-                            <input type="datetime-local" id="tradeDate" required class="w-full bg-slate-900/80 border border-brand-border rounded-xl px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-blue-500 font-mono">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-400 mb-1">Aset / Pair (e.g., BTCUSD, XAUUSD, EURUSD)</label>
-                            <input type="text" id="tradePair" placeholder="BTCUSD / XAUUSD" required class="w-full bg-slate-900/80 border border-brand-border rounded-xl px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-blue-500 font-mono uppercase">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-400 mb-1">Arah Transaksi (Direction)</label>
-                            <select id="tradeDirection" class="w-full bg-slate-900/80 border border-brand-border rounded-xl px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-blue-500">
-                                <option value="LONG">BUY / LONG 🟢</option>
-                                <option value="SHORT">SELL / SHORT 🔴</option>
-                                <option value="NONE">NO POSITION ⚪</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-400 mb-1">Hasil R:R atau Profit/Loss ($)</label>
-                            <input type="text" id="tradeReturn" placeholder="e.g. +2R, -$50, 0R" class="w-full bg-slate-900/80 border border-brand-border rounded-xl px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-blue-500 font-mono">
-                        </div>
-                    </div>
+            <!-- Step 1: Main Outcome Choice -->
+            <div class="bg-cardbg border border-cardborder rounded-2xl p-5 sm:p-6 shadow-xl">
+                <div class="mb-4">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400">Judul Utama</span>
+                    <h2 class="text-xl font-bold text-white mt-1">
+                        Was the outcome of the trade a win or a loss?
+                    </h2>
+                    <p class="text-sm text-slate-400">Apakah hasil dari transaksi tersebut profit atau rugi?</p>
                 </div>
 
-                <div class="glass-panel p-6 rounded-2xl border border-brand-border space-y-4">
-                    <div>
-                        <span class="text-xs font-semibold uppercase tracking-wider text-blue-400 block mb-1">Judul Utama / Main Question</span>
-                        <h3 class="text-lg font-bold text-white">
-                            Was the outcome of the trade a win or a loss?
-                        </h3>
-                        <p class="text-sm text-gray-400 italic">Apakah hasil dari transaksi tersebut profit atau rugi?</p>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                        <!-- Option Win -->
-                        <label class="relative flex flex-col p-4 rounded-xl border border-brand-border bg-slate-900/50 hover:bg-slate-800/60 cursor-pointer transition group">
-                            <input type="radio" name="outcome" value="WIN" onchange="onOutcomeChange('WIN')" class="sr-only peer">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="font-bold text-emerald-400 text-lg flex items-center gap-2">
-                                    <i class="fa-solid fa-trophy"></i> Win
-                                </span>
-                                <span class="w-5 h-5 rounded-full border border-gray-600 peer-checked:border-emerald-500 peer-checked:bg-emerald-500 flex items-center justify-center">
-                                    <i class="fa-solid fa-check text-xs text-black opacity-0 peer-checked:opacity-100"></i>
-                                </span>
-                            </div>
-                            <span class="text-xs text-gray-400">Profit (Bagian 1)</span>
-                        </label>
-
-                        <!-- Option Loss -->
-                        <label class="relative flex flex-col p-4 rounded-xl border border-brand-border bg-slate-900/50 hover:bg-slate-800/60 cursor-pointer transition group">
-                            <input type="radio" name="outcome" value="LOSS" onchange="onOutcomeChange('LOSS')" class="sr-only peer">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="font-bold text-rose-400 text-lg flex items-center gap-2">
-                                    <i class="fa-solid fa-circle-xmark"></i> Loss
-                                </span>
-                                <span class="w-5 h-5 rounded-full border border-gray-600 peer-checked:border-rose-500 peer-checked:bg-rose-500 flex items-center justify-center">
-                                    <i class="fa-solid fa-check text-xs text-white opacity-0 peer-checked:opacity-100"></i>
-                                </span>
-                            </div>
-                            <span class="text-xs text-gray-400">Rugi (Bagian 2)</span>
-                        </label>
-
-                        <!-- Option No Trades -->
-                        <label class="relative flex flex-col p-4 rounded-xl border border-brand-border bg-slate-900/50 hover:bg-slate-800/60 cursor-pointer transition group">
-                            <input type="radio" name="outcome" value="NO_TRADES" onchange="onOutcomeChange('NO_TRADES')" class="sr-only peer">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="font-bold text-sky-400 text-lg flex items-center gap-2">
-                                    <i class="fa-solid fa-hand"></i> No Trades
-                                </span>
-                                <span class="w-5 h-5 rounded-full border border-gray-600 peer-checked:border-sky-500 peer-checked:bg-sky-500 flex items-center justify-center">
-                                    <i class="fa-solid fa-check text-xs text-black opacity-0 peer-checked:opacity-100"></i>
-                                </span>
-                            </div>
-                            <span class="text-xs text-gray-400">Tidak Ada Transaksi (Bagian 3)</span>
-                        </label>
-                    </div>
-                </div>
-
-                <div id="dynamicBranchContainer" class="hidden glass-panel p-6 rounded-2xl border border-brand-border space-y-6 fade-in">
-                    
-                    <!-- Sub-Question Header -->
-                    <div class="border-b border-brand-border pb-4">
-                        <span id="sectionTag" class="text-xs font-semibold uppercase tracking-wider text-blue-400">Bagian Evaluation</span>
-                        <h3 id="branchQuestionEn" class="text-lg font-bold text-white mt-1">Primary Branch Question</h3>
-                        <p id="branchQuestionId" class="text-sm text-gray-400 italic">Pertanyaan cabang utama</p>
-
-                        <!-- Yes/No Buttons -->
-                        <div class="flex gap-4 mt-4">
-                            <button type="button" onclick="onBranchAnswer('YES')" id="btnBranchYes" class="flex-1 sm:flex-initial px-6 py-2.5 rounded-xl border border-brand-border bg-slate-900/80 hover:bg-blue-600 hover:text-white transition font-medium text-sm flex items-center justify-center gap-2">
-                                <i class="fa-solid fa-check"></i> Yes / Ya
-                            </button>
-                            <button type="button" onclick="onBranchAnswer('NO')" id="btnBranchNo" class="flex-1 sm:flex-initial px-6 py-2.5 rounded-xl border border-brand-border bg-slate-900/80 hover:bg-rose-600 hover:text-white transition font-medium text-sm flex items-center justify-center gap-2">
-                                <i class="fa-solid fa-xmark"></i> No / Tidak
-                            </button>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                    <!-- WIN BUTTON -->
+                    <button type="button" onclick="selectOutcome('WIN')" id="btn-outcome-win" class="outcome-btn group relative p-5 rounded-xl border-2 border-slate-800 bg-slate-900/60 hover:border-emerald-500 text-left transition-all">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 font-bold text-lg"><i class="fa-solid fa-trophy"></i></span>
+                            <span class="check-icon opacity-0 text-emerald-400 text-xl"><i class="fa-solid fa-circle-check"></i></span>
                         </div>
-                    </div>
-
-                    <!-- SPECIFIC QUESTIONNAIRE TEXTAREAS -->
-                    <div id="questionsContainer" class="hidden space-y-6 fade-in pt-2">
-                        <div class="flex items-center gap-2">
-                            <i class="fa-solid fa-list-check text-blue-400 text-sm"></i>
-                            <h4 class="text-sm font-semibold text-gray-200">Pertanyaan Evaluasi Mendalam (Deep Dive Questions):</h4>
-                        </div>
-
-                        <!-- Question 1 -->
-                        <div class="space-y-2 bg-slate-900/40 p-4 rounded-xl border border-brand-border/60">
-                            <label class="block text-sm font-semibold text-gray-200" id="q1LabelEn">Question 1</label>
-                            <p class="text-xs text-gray-400 italic" id="q1LabelId">Pertanyaan 1</p>
-                            <textarea id="q1Answer" rows="3" placeholder="Tuliskan analisis atau pandanganmu di sini..." class="w-full bg-slate-900/90 border border-brand-border rounded-xl p-3 text-sm text-gray-100 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 custom-scrollbar"></textarea>
-                        </div>
-
-                        <!-- Question 2 -->
-                        <div class="space-y-2 bg-slate-900/40 p-4 rounded-xl border border-brand-border/60">
-                            <label class="block text-sm font-semibold text-gray-200" id="q2LabelEn">Question 2</label>
-                            <p class="text-xs text-gray-400 italic" id="q2LabelId">Pertanyaan 2</p>
-                            <textarea id="q2Answer" rows="3" placeholder="Tuliskan analisis atau pandanganmu di sini..." class="w-full bg-slate-900/90 border border-brand-border rounded-xl p-3 text-sm text-gray-100 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 custom-scrollbar"></textarea>
-                        </div>
-
-                        <!-- Question 3 -->
-                        <div class="space-y-2 bg-slate-900/40 p-4 rounded-xl border border-brand-border/60">
-                            <label class="block text-sm font-semibold text-gray-200" id="q3LabelEn">Question 3</label>
-                            <p class="text-xs text-gray-400 italic" id="q3LabelId">Pertanyaan 3</p>
-                            <textarea id="q3Answer" rows="3" placeholder="Tuliskan analisis atau pandanganmu di sini..." class="w-full bg-slate-900/90 border border-brand-border rounded-xl p-3 text-sm text-gray-100 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 custom-scrollbar"></textarea>
-                        </div>
-
-                        <div class="space-y-3 pt-2 bg-slate-900/40 p-4 rounded-xl border border-brand-border/60">
-                            <label class="block text-xs font-semibold uppercase tracking-wider text-blue-400">
-                                <i class="fa-solid fa-image mr-1"></i> Screenshot Chart (Upload File atau Pasang Link)
-                            </label>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-xs text-gray-400 mb-1">Opsi A: Upload File Gambar Chart (Rekomendasi Terkuat PDF)</label>
-                                    <input type="file" id="chartFileInput" accept="image/*" onchange="handleChartFileUpload(event)" class="w-full text-xs text-gray-300 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer bg-slate-900/80 border border-brand-border rounded-xl p-1">
-                                </div>
-                                <div>
-                                    <label class="block text-xs text-gray-400 mb-1">Opsi B: Atau Masukkan Link URL Gambar</label>
-                                    <input type="url" id="chartUrl" placeholder="https://i.imgur.com/... atau TradingView link" class="w-full bg-slate-900/80 border border-brand-border rounded-xl px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-blue-500 font-mono">
-                                </div>
-                            </div>
-                            <!-- Image Preview Thumbnail -->
-                            <div id="chartPreviewContainer" class="hidden mt-3 relative inline-block border border-brand-border rounded-xl overflow-hidden bg-black/40">
-                                <img id="chartPreviewImg" src="" alt="Chart Preview" class="max-h-40 object-contain rounded-xl">
-                                <button type="button" onclick="removeChartImage()" class="absolute top-2 right-2 bg-rose-600 hover:bg-rose-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs shadow-md">
-                                    <i class="fa-solid fa-xmark"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-brand-border">
-                            <button type="button" onclick="resetForm()" class="px-4 py-2 rounded-xl border border-brand-border text-gray-400 hover:text-white hover:bg-slate-800 text-sm font-medium transition">
-                                <i class="fa-solid fa-rotate-right mr-1"></i> Reset
-                            </button>
-                            
-                            <div class="flex flex-wrap items-center gap-2 sm:gap-3">
-                                <button type="button" onclick="printReportFromForm()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-blue-400 hover:text-blue-300 text-sm font-medium transition flex items-center gap-1.5 border border-brand-border" title="Cetak atau Simpan PDF via Browser">
-                                    <i class="fa-solid fa-print"></i> Cetak
-                                </button>
-                                <button type="button" onclick="downloadPDFFromForm()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-400 hover:text-rose-300 text-sm font-medium transition flex items-center gap-2 border border-brand-border">
-                                    <i class="fa-solid fa-file-pdf text-rose-500"></i> Download PDF
-                                </button>
-                                <button type="button" onclick="copyMarkdownFromForm()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-gray-200 text-sm font-medium transition flex items-center gap-2 border border-brand-border">
-                                    <i class="fa-solid fa-copy"></i> Copy Markdown
-                                </button>
-                                <button type="submit" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-sm shadow-lg shadow-blue-500/25 transition flex items-center gap-2">
-                                    <i class="fa-solid fa-floppy-disk"></i> Simpan Ke Jurnal
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-            </form>
-        </section>
-
-        <section id="view-history" class="hidden fade-in space-y-6">
-            <!-- Filter & Search Bar -->
-            <div class="glass-panel p-4 rounded-2xl border border-brand-border flex flex-col md:flex-row items-center justify-between gap-4">
-                <div class="relative w-full md:w-80">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-gray-500 text-sm"></i>
-                    <input type="text" id="searchInput" oninput="renderHistoryList()" placeholder="Cari Pair, tanggal, atau keyword..." class="w-full bg-slate-900/80 border border-brand-border rounded-xl pl-10 pr-4 py-2 text-sm text-gray-200 focus:outline-none focus:border-blue-500">
-                </div>
-
-                <div class="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
-                    <select id="filterOutcome" onchange="renderHistoryList()" class="bg-slate-900/80 border border-brand-border rounded-xl px-3 py-2 text-xs text-gray-300 focus:outline-none focus:border-blue-500">
-                        <option value="ALL">Semua Hasil (Win/Loss/No Trade)</option>
-                        <option value="WIN">Win Only 🟢</option>
-                        <option value="LOSS">Loss Only 🔴</option>
-                        <option value="NO_TRADES">No Trades Only ⚪</option>
-                    </select>
-
-                    <button onclick="exportDataJSON()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-medium text-gray-300 border border-brand-border transition flex items-center gap-1">
-                        <i class="fa-solid fa-download"></i> Export JSON
+                        <h3 class="text-lg font-bold text-emerald-400">Win</h3>
+                        <p class="text-xs text-slate-400">Profit</p>
                     </button>
-                    <label class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-medium text-gray-300 border border-brand-border transition cursor-pointer flex items-center gap-1">
-                        <i class="fa-solid fa-upload"></i> Import
-                        <input type="file" id="importFileInput" onchange="importDataJSON(event)" accept=".json" class="hidden">
+
+                    <!-- LOSS BUTTON -->
+                    <button type="button" onclick="selectOutcome('LOSS')" id="btn-outcome-loss" class="outcome-btn group relative p-5 rounded-xl border-2 border-slate-800 bg-slate-900/60 hover:border-rose-500 text-left transition-all">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="p-2 rounded-lg bg-rose-500/10 text-rose-400 font-bold text-lg"><i class="fa-solid fa-chart-line-down"></i></span>
+                            <span class="check-icon opacity-0 text-rose-400 text-xl"><i class="fa-solid fa-circle-check"></i></span>
+                        </div>
+                        <h3 class="text-lg font-bold text-rose-400">Loss</h3>
+                        <p class="text-xs text-slate-400">Rugi</p>
+                    </button>
+
+                    <!-- NO TRADES BUTTON -->
+                    <button type="button" onclick="selectOutcome('NOTRADE')" id="btn-outcome-notrade" class="outcome-btn group relative p-5 rounded-xl border-2 border-slate-800 bg-slate-900/60 hover:border-amber-500 text-left transition-all">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="p-2 rounded-lg bg-amber-500/10 text-amber-400 font-bold text-lg"><i class="fa-solid fa-ban"></i></span>
+                            <span class="check-icon opacity-0 text-amber-400 text-xl"><i class="fa-solid fa-circle-check"></i></span>
+                        </div>
+                        <h3 class="text-lg font-bold text-amber-400">No Trades</h3>
+                        <p class="text-xs text-slate-400">Tidak Ada Transaksi</p>
+                    </button>
+                </div>
+            </div>
+
+            <!-- DYNAMIC QUESTIONS CONTAINER -->
+            <div id="dynamic-questions-container" class="hidden space-y-6">
+                <!-- Branching choice question card -->
+                <div id="branch-question-card" class="bg-cardbg border border-cardborder rounded-2xl p-5 sm:p-6 shadow-xl border-l-4 border-l-sky-500">
+                    <span id="section-badge" class="px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wider bg-slate-800 text-sky-400">
+                        Bagian 1: Win (Profit)
+                    </span>
+                    <h3 id="branch-q-en" class="text-lg font-bold text-slate-100 mt-3">
+                        Is this a trade you would take again without knowing the outcome was a win?
+                    </h3>
+                    <p id="branch-q-id" class="text-sm text-slate-400 mt-0.5">
+                        Apakah ini jenis transaksi yang tetap akan kamu ambil tanpa tahu bahwa hasilnya bakal profit?
+                    </p>
+
+                    <div class="flex gap-4 mt-5">
+                        <button type="button" id="btn-branch-yes" onclick="selectBranch('YES')" class="branch-btn px-6 py-2.5 rounded-lg border border-slate-700 bg-slate-900 font-semibold text-sm hover:border-emerald-500 transition flex items-center gap-2">
+                            <i class="fa-solid fa-thumbs-up"></i> Yes / Ya
+                        </button>
+                        <button type="button" id="btn-branch-no" onclick="selectBranch('NO')" class="branch-btn px-6 py-2.5 rounded-lg border border-slate-700 bg-slate-900 font-semibold text-sm hover:border-rose-500 transition flex items-center gap-2">
+                            <i class="fa-solid fa-thumbs-down"></i> No / Tidak
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Textarea Reflection Questions -->
+                <div id="text-questions-card" class="hidden bg-cardbg border border-cardborder rounded-2xl p-5 sm:p-6 shadow-xl space-y-6">
+                    <h3 class="text-md font-semibold text-slate-300 border-b border-slate-800 pb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-pen-to-square text-emerald-400"></i> Evaluasi & Jawaban Detil
+                    </h3>
+
+                    <div id="q1-box" class="space-y-1.5">
+                        <label class="block font-medium text-slate-200 text-sm" id="q1-en">Question 1</label>
+                        <p class="text-xs text-slate-400 italic mb-2" id="q1-id">Pertanyaan 1</p>
+                        <textarea id="ans-1" rows="3" placeholder="Tuliskan analisis dan penjelasan detil di sini..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-slate-100 focus:outline-none focus:border-emerald-500 transition focus:ring-1 focus:ring-emerald-500"></textarea>
+                    </div>
+
+                    <div id="q2-box" class="space-y-1.5">
+                        <label class="block font-medium text-slate-200 text-sm" id="q2-en">Question 2</label>
+                        <p class="text-xs text-slate-400 italic mb-2" id="q2-id">Pertanyaan 2</p>
+                        <textarea id="ans-2" rows="3" placeholder="Tuliskan analisis dan penjelasan detil di sini..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-slate-100 focus:outline-none focus:border-emerald-500 transition focus:ring-1 focus:ring-emerald-500"></textarea>
+                    </div>
+
+                    <div id="q3-box" class="space-y-1.5">
+                        <label class="block font-medium text-slate-200 text-sm" id="q3-en">Question 3</label>
+                        <p class="text-xs text-slate-400 italic mb-2" id="q3-id">Pertanyaan 3</p>
+                        <textarea id="ans-3" rows="3" placeholder="Tuliskan analisis dan penjelasan detil di sini..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-slate-100 focus:outline-none focus:border-emerald-500 transition focus:ring-1 focus:ring-emerald-500"></textarea>
+                    </div>
+
+                    <!-- Extra Notes -->
+                    <div class="pt-2 border-t border-slate-800">
+                        <label class="block font-medium text-slate-300 text-sm mb-1">Catatan Tambahan / Key Takeaways (opsional)</label>
+                        <textarea id="ans-extra" rows="2" placeholder="Catatan psikologis atau aturan tambahan..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-slate-100 focus:outline-none focus:border-emerald-500"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit and Export Actions -->
+            <div id="actions-bar" class="hidden flex flex-wrap items-center justify-between gap-4 pt-2">
+                <button type="button" onclick="resetForm()" class="px-4 py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 text-sm font-medium transition">
+                    <i class="fa-solid fa-rotate-left mr-1"></i> Reset Form
+                </button>
+
+                <div class="flex items-center gap-3">
+                    <button type="button" onclick="saveToJournal()" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-semibold text-sm transition flex items-center gap-2 shadow-md">
+                        <i class="fa-solid fa-floppy-disk text-emerald-400"></i> Simpan ke Journal
+                    </button>
+                    <button type="button" onclick="generatePDF()" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm shadow-lg shadow-emerald-600/30 transition flex items-center gap-2">
+                        <i class="fa-solid fa-file-pdf"></i> Simpan / Download PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 2: HISTORY LIST -->
+        <div id="view-history" class="hidden animate-fade-in space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-cardbg border border-cardborder rounded-2xl p-5 shadow-xl">
+                <div>
+                    <h2 class="text-xl font-bold text-white">Riwayat Trading Journal</h2>
+                    <p class="text-xs text-slate-400">Semua hasil review eksekusi yang tersimpan di browser Anda</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <input type="text" id="history-search" oninput="renderHistoryList()" placeholder="Cari Pair atau Catatan..." class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500">
+                    <label class="cursor-pointer bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-300 transition" title="Import File JSON Backup">
+                        <i class="fa-solid fa-upload mr-1"></i> Import JSON
+                        <input type="file" id="import-json-file" accept=".json" class="hidden" onchange="importJSONBackup(event)">
                     </label>
                 </div>
             </div>
 
-            <!-- List Container -->
-            <div id="historyList" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- Dynamic cards generated here -->
-            </div>
-            <div id="emptyHistoryState" class="hidden glass-panel p-12 text-center rounded-2xl border border-brand-border space-y-3">
-                <div class="w-16 h-16 mx-auto rounded-full bg-slate-800/80 flex items-center justify-center text-gray-500 text-2xl">
-                    <i class="fa-solid fa-folder-open"></i>
-                </div>
-                <h3 class="text-base font-semibold text-gray-300">Belum Ada Jurnal Evaluasi</h3>
-                <p class="text-xs text-gray-500 max-w-sm mx-auto">Mulai tambahkan hasil transaksi atau evaluasi harianmu di tab "Evaluasi Baru".</p>
-                <button onclick="switchTab('new-review')" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-medium hover:bg-blue-500 transition">
-                    <i class="fa-solid fa-plus"></i> Buat Evaluasi Pertama
-                </button>
-            </div>
-        </section>
-
-        <section id="view-analytics" class="hidden fade-in space-y-6">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <!-- Total Reviews -->
-                <div class="glass-panel p-5 rounded-2xl border border-brand-border space-y-2">
-                    <div class="flex items-center justify-between text-gray-400">
-                        <span class="text-xs font-medium uppercase tracking-wider">Total Evaluasi</span>
-                        <i class="fa-solid fa-receipt text-blue-400"></i>
-                    </div>
-                    <div id="statTotal" class="text-2xl font-extrabold text-white font-mono">0</div>
-                    <p class="text-xs text-gray-500">Sesi review tersimpan</p>
-                </div>
-
-                <!-- Win Rate Ratio -->
-                <div class="glass-panel p-5 rounded-2xl border border-brand-border space-y-2">
-                    <div class="flex items-center justify-between text-gray-400">
-                        <span class="text-xs font-medium uppercase tracking-wider">Win Rate Execution</span>
-                        <i class="fa-solid fa-chart-line text-emerald-400"></i>
-                    </div>
-                    <div id="statWinRate" class="text-2xl font-extrabold text-emerald-400 font-mono">0%</div>
-                    <p class="text-xs text-gray-500" id="statWinSub">0 Win / 0 Loss</p>
-                </div>
-
-                <!-- Disciplined vs Flawed Trade -->
-                <div class="glass-panel p-5 rounded-2xl border border-brand-border space-y-2">
-                    <div class="flex items-center justify-between text-gray-400">
-                        <span class="text-xs font-medium uppercase tracking-wider">Quality Ratio</span>
-                        <i class="fa-solid fa-shield-halved text-indigo-400"></i>
-                    </div>
-                    <div id="statQuality" class="text-2xl font-extrabold text-indigo-400 font-mono">0%</div>
-                    <p class="text-xs text-gray-500">Trade Sesuai Plan (Yes Take Again)</p>
-                </div>
-
-                <!-- Inactivity Discipline -->
-                <div class="glass-panel p-5 rounded-2xl border border-brand-border space-y-2">
-                    <div class="flex items-center justify-between text-gray-400">
-                        <span class="text-xs font-medium uppercase tracking-wider">Disciplined No-Trade</span>
-                        <i class="fa-solid fa-circle-check text-sky-400"></i>
-                    </div>
-                    <div id="statNoTrades" class="text-2xl font-extrabold text-sky-400 font-mono">0</div>
-                    <p class="text-xs text-gray-500">Hari sabar tanpa overtrade</p>
-                </div>
+            <!-- Filter Badges -->
+            <div class="flex items-center gap-2 overflow-x-auto pb-1">
+                <button onclick="setHistoryFilter('ALL')" id="filter-btn-ALL" class="history-filter-btn px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-600 text-white">Semua</button>
+                <button onclick="setHistoryFilter('WIN')" id="filter-btn-WIN" class="history-filter-btn px-3 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700">Win</button>
+                <button onclick="setHistoryFilter('LOSS')" id="filter-btn-LOSS" class="history-filter-btn px-3 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700">Loss</button>
+                <button onclick="setHistoryFilter('NOTRADE')" id="filter-btn-NOTRADE" class="history-filter-btn px-3 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700">No Trades</button>
             </div>
 
-            <!-- Breakdown Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Win Breakdown -->
-                <div class="glass-panel p-6 rounded-2xl border border-brand-border space-y-4">
-                    <h3 class="text-sm font-semibold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
-                        <i class="fa-solid fa-trophy"></i> Win Breakdown
-                    </h3>
-                    <div class="space-y-3">
-                        <div class="flex justify-between items-center text-sm p-3 bg-slate-900/50 rounded-xl border border-brand-border/40">
-                            <div>
-                                <span class="block text-gray-200 font-medium">Good Wins (Would Take Again)</span>
-                                <span class="text-xs text-gray-500">Profit & Sesuai Plan</span>
-                            </div>
-                            <span id="statGoodWins" class="text-lg font-bold text-emerald-400 font-mono">0</span>
-                        </div>
-                        <div class="flex justify-between items-center text-sm p-3 bg-slate-900/50 rounded-xl border border-brand-border/40">
-                            <div>
-                                <span class="block text-gray-200 font-medium">Flawed Wins (Luck / Bad Plan)</span>
-                                <span class="text-xs text-gray-500">Profit Tapi Menyimpang</span>
-                            </div>
-                            <span id="statFlawedWins" class="text-lg font-bold text-amber-400 font-mono">0</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Loss Breakdown -->
-                <div class="glass-panel p-6 rounded-2xl border border-brand-border space-y-4">
-                    <h3 class="text-sm font-semibold text-rose-400 uppercase tracking-wider flex items-center gap-2">
-                        <i class="fa-solid fa-circle-xmark"></i> Loss Breakdown
-                    </h3>
-                    <div class="space-y-3">
-                        <div class="flex justify-between items-center text-sm p-3 bg-slate-900/50 rounded-xl border border-brand-border/40">
-                            <div>
-                                <span class="block text-gray-200 font-medium">Good Losses (System Loss)</span>
-                                <span class="text-xs text-gray-500">Rugi Tapi Tetap Ambil Lagi</span>
-                            </div>
-                            <span id="statGoodLosses" class="text-lg font-bold text-blue-400 font-mono">0</span>
-                        </div>
-                        <div class="flex justify-between items-center text-sm p-3 bg-slate-900/50 rounded-xl border border-brand-border/40">
-                            <div>
-                                <span class="block text-gray-200 font-medium">Bad Losses (Rule Deviation)</span>
-                                <span class="text-xs text-gray-500">Rugi Karena Melanggar Plan</span>
-                            </div>
-                            <span id="statBadLosses" class="text-lg font-bold text-rose-400 font-mono">0</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- No Trades Breakdown -->
-                <div class="glass-panel p-6 rounded-2xl border border-brand-border space-y-4">
-                    <h3 class="text-sm font-semibold text-sky-400 uppercase tracking-wider flex items-center gap-2">
-                        <i class="fa-solid fa-hand"></i> Inactivity Breakdown
-                    </h3>
-                    <div class="space-y-3">
-                        <div class="flex justify-between items-center text-sm p-3 bg-slate-900/50 rounded-xl border border-brand-border/40">
-                            <div>
-                                <span class="block text-gray-200 font-medium">Disciplined Inactivity</span>
-                                <span class="text-xs text-gray-500">Tidak Ada Setup Valid</span>
-                            </div>
-                            <span id="statGoodNoTrades" class="text-lg font-bold text-sky-400 font-mono">0</span>
-                        </div>
-                        <div class="flex justify-between items-center text-sm p-3 bg-slate-900/50 rounded-xl border border-brand-border/40">
-                            <div>
-                                <span class="block text-gray-200 font-medium">Missed Opportunities</span>
-                                <span class="text-xs text-gray-500">Ada Setup Valid Tapi Ragu</span>
-                            </div>
-                            <span id="statMissedTrades" class="text-lg font-bold text-purple-400 font-mono">0</span>
-                        </div>
-                    </div>
-                </div>
+            <div id="history-list-container" class="space-y-4">
+                <!-- Dynamically populated -->
             </div>
-        </section>
+        </div>
 
     </main>
 
-    <div id="detailModal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4 z-50">
-        <div class="glass-panel max-w-2xl w-full max-h-[90vh] rounded-2xl border border-brand-border flex flex-col overflow-hidden shadow-2xl fade-in">
-            <!-- Modal Header -->
-            <div class="p-5 border-b border-brand-border flex items-center justify-between bg-slate-900/60">
+    <!-- HIDDEN PDF PRINT TEMPLATE DOM (Designed with light mode & clear breaks for pdf export) -->
+    <div id="pdf-wrapper" style="position: absolute; left: -9999px; top: -9999px;">
+        <div id="pdf-render-area">
+            <!-- Header section inside PDF -->
+            <div style="border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: flex-end;">
                 <div>
-                    <span id="modalCategoryBadge" class="text-xs font-mono uppercase px-2.5 py-0.5 rounded-full font-semibold">Badge</span>
-                    <h3 id="modalTitle" class="text-lg font-bold text-white mt-1">Trade Detail</h3>
+                    <h1 style="font-size: 20pt; font-weight: 800; color: #0f172a; margin: 0;">TRADE EXECUTION REVIEW</h1>
+                    <p style="font-size: 10pt; color: #64748b; margin: 4px 0 0 0;">Trading Performance & Execution Analysis Journal</p>
                 </div>
-                <button onclick="closeModal()" class="text-gray-400 hover:text-white text-lg w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-800">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
+                <div style="text-align: right;">
+                    <span id="pdf-outcome-badge" style="display: inline-block; padding: 4px 12px; font-weight: 700; border-radius: 4px; font-size: 11pt; text-transform: uppercase;">
+                        WIN
+                    </span>
+                </div>
             </div>
 
-            <!-- Modal Content Scrollable -->
-            <div id="modalBody" class="p-6 space-y-6 overflow-y-auto custom-scrollbar flex-grow">
-                <!-- Content inserted dynamically -->
+            <!-- Meta details grid -->
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 15px; font-size: 9.5pt;">
+                <div><strong>Tanggal:</strong> <span id="pdf-meta-date">-</span></div>
+                <div><strong>Pair:</strong> <span id="pdf-meta-pair">-</span></div>
+                <div><strong>Sesi:</strong> <span id="pdf-meta-session">-</span></div>
+                <div><strong>Risk/Reward:</strong> <span id="pdf-meta-rr">-</span></div>
             </div>
 
-            <!-- Modal Footer -->
-            <div class="p-4 border-t border-brand-border bg-slate-900/60 flex flex-wrap items-center justify-between gap-2">
-                <div class="flex items-center gap-2">
-                    <button id="modalPrintBtn" onclick="" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-blue-400 border border-brand-border transition flex items-center gap-1.5" title="Cetak Langsung">
-                        <i class="fa-solid fa-print"></i> Cetak
-                    </button>
-                    <button id="modalPdfBtn" onclick="" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-rose-400 border border-brand-border transition flex items-center gap-2">
-                        <i class="fa-solid fa-file-pdf"></i> Download PDF
-                    </button>
-                    <button id="modalCopyBtn" onclick="" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-gray-200 border border-brand-border transition flex items-center gap-2">
-                        <i class="fa-solid fa-copy"></i> Copy Markdown
-                    </button>
+            <!-- Main Question & Branching Decision -->
+            <div class="pdf-page-block" style="background-color: #f1f5f9; border-left: 4px solid #0284c7; padding: 12px 16px; margin-bottom: 20px; border-radius: 4px;">
+                <div style="font-size: 9pt; font-weight: 700; color: #0284c7; text-transform: uppercase;" id="pdf-section-title">Bagian 1: Win</div>
+                <div style="font-size: 11pt; font-weight: 700; color: #0f172a; margin-top: 4px;" id="pdf-branch-q-en">Question Title</div>
+                <div style="font-size: 9.5pt; color: #475569; font-style: italic;" id="pdf-branch-q-id">Sub question</div>
+                <div style="margin-top: 8px; font-size: 10pt; font-weight: 700; color: #0f172a;">
+                    Jawaban Pilihan: <span id="pdf-branch-answer" style="color: #0369a1; text-decoration: underline;">YES</span>
                 </div>
-                <button onclick="closeModal()" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white transition">
-                    Tutup
-                </button>
+            </div>
+
+            <!-- Detailed Answers Blocks (Each wrapped in avoid page break) -->
+            <div id="pdf-q1-container" class="pdf-page-block" style="margin-bottom: 18px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                <div style="font-size: 10pt; font-weight: 700; color: #0f172a;" id="pdf-q1-en">Question 1</div>
+                <div style="font-size: 8.5pt; color: #64748b; margin-bottom: 8px;" id="pdf-q1-id">Pertanyaan 1</div>
+                <div class="pdf-text-content" id="pdf-a1-text">-</div>
+            </div>
+
+            <div id="pdf-q2-container" class="pdf-page-block" style="margin-bottom: 18px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                <div style="font-size: 10pt; font-weight: 700; color: #0f172a;" id="pdf-q2-en">Question 2</div>
+                <div style="font-size: 8.5pt; color: #64748b; margin-bottom: 8px;" id="pdf-q2-id">Pertanyaan 2</div>
+                <div class="pdf-text-content" id="pdf-a2-text">-</div>
+            </div>
+
+            <div id="pdf-q3-container" class="pdf-page-block" style="margin-bottom: 18px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                <div style="font-size: 10pt; font-weight: 700; color: #0f172a;" id="pdf-q3-en">Question 3</div>
+                <div style="font-size: 8.5pt; color: #64748b; margin-bottom: 8px;" id="pdf-q3-id">Pertanyaan 3</div>
+                <div class="pdf-text-content" id="pdf-a3-text">-</div>
+            </div>
+
+            <div id="pdf-extra-container" class="pdf-page-block" style="margin-bottom: 18px; padding: 12px; border: 1px dashed #cbd5e1; border-radius: 6px; background-color: #fafafa;">
+                <div style="font-size: 9.5pt; font-weight: 700; color: #334155; margin-bottom: 6px;">Catatan Tambahan / Takeaways:</div>
+                <div class="pdf-text-content" id="pdf-aextra-text">-</div>
+            </div>
+
+            <!-- Screenshot in PDF -->
+            <div id="pdf-image-container" class="pdf-page-block" style="margin-top: 20px; display: none; text-align: center;">
+                <div style="font-size: 9.5pt; font-weight: 700; color: #475569; margin-bottom: 8px; text-align: left;">Chart Screenshot:</div>
+                <img id="pdf-chart-img" src="" style="max-width: 100%; max-height: 400px; border: 1px solid #cbd5e1; border-radius: 6px; object-fit: contain;">
+            </div>
+
+            <!-- Footer in PDF -->
+            <div style="margin-top: 30px; border-t: 1px solid #e2e8f0; padding-top: 10px; font-size: 8pt; color: #94a3b8; text-align: justify; display: flex; justify-content: space-between;">
+                <span>Generated via Trade Execution Review Tool</span>
+                <span>Page Review PDF</span>
             </div>
         </div>
     </div>
 
-    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 border border-brand-border px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 text-sm text-gray-200 transform translate-y-20 opacity-0 transition-all duration-300 z-50">
-        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
-        <span id="toastMsg">Notification Message</span>
-    </div>
+    <!-- Custom Toast Notification -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-    <!-- PDF Loading Spinner Overlay -->
-    <div id="pdfLoadingOverlay" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md hidden items-center justify-center flex-col gap-4 z-[99999] fade-in">
-        <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-        <div class="text-center">
-            <h4 class="text-white font-bold text-base">Membuat Dokumen PDF...</h4>
-            <p class="text-gray-400 text-xs mt-1">Mohon tunggu sebentar, laporan sedang diproses.</p>
+    <!-- Custom Modal for Alerts/Confirmations -->
+    <div id="modal-overlay" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-200">
+        <div class="bg-cardbg border border-cardborder rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-200" id="modal-box">
+            <h3 id="modal-title" class="text-lg font-bold text-white mb-2">Konfirmasi</h3>
+            <p id="modal-msg" class="text-sm text-slate-300 mb-6">Apakah Anda yakin?</p>
+            <div class="flex justify-end gap-3" id="modal-actions">
+                <button onclick="closeModal()" class="px-4 py-2 text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 rounded-lg">Batal</button>
+                <button id="modal-confirm-btn" class="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg">Ya, Lanjutkan</button>
+            </div>
         </div>
     </div>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800/80 py-4 text-center text-xs text-slate-500">
+        Trade Review Journal &bull; Ready for GitHub Pages
+    </footer>
 
     <script>
-        let journals = JSON.parse(localStorage.getItem('trade_reviews_data')) || [];
-        let selectedOutcome = null;
-        let selectedBranchAnswer = null;
-        let uploadedChartBase64 = null;
-
-        const QUESTION_TREE = {
+        // Exact questions matrix matching the user's requirements
+        const REVIEW_SCHEMA = {
             WIN: {
-                branchQuestionEn: "Is this a trade you would take again without knowing the outcome was a win?",
-                branchQuestionId: "Apakah ini jenis transaksi yang tetap akan kamu ambil tanpa tahu bahwa hasilnya bakal profit?",
-                YES: {
-                    tag: "Disciplined Win",
-                    questions: [
-                        { en: "What would you improve with your execution on this trade?", id: "Apa yang ingin kamu tingkatkan dari eksekusimu pada transaksi ini?" },
-                        { en: "How could you have managed this trade to increase the profit?", id: "Bagaimana kamu bisa mengelola transaksi ini agar bisa memperbesar profit?" },
-                        { en: "What can you do to repeat this type of trade in the future?", id: "Apa yang bisa kamu lakukan untuk mengulangi jenis transaksi seperti ini di masa depan?" }
-                    ]
-                },
-                NO: {
-                    tag: "Flawed Win",
-                    questions: [
-                        { en: "Where did you deviate from your plan or approach and why?", id: "Di bagian mana kamu menyimpang dari rencana atau metodemu, dan mengapa?" },
-                        { en: "How could this flawed win have been avoided in the future?", id: "Bagaimana profit yang bercelah/cacat ini bisa dihindari di masa depan?" },
-                        { en: "What specifically was done incorrectly in this trade despite the outcome?", id: "Apa hal spesifik yang dilakukan secara salah pada transaksi ini terlepas dari hasilnya?" }
+                titleEN: "Win (Profit)",
+                titleID: "Bagian 1: Win (Profit)",
+                branchQuestionEN: "Is this a trade you would take again without knowing the outcome was a win?",
+                branchQuestionID: "Apakah ini jenis transaksi yang tetap akan kamu ambil tanpa tahu bahwa hasilnya bakal profit?",
+                branches: {
+                    YES: [
+                        {
+                            en: "What would you improve with your execution on this trade?",
+                            id: "Apa yang ingin kamu tingkatkan dari eksekusimu pada transaksi ini?"
+                        },
+                        {
+                            en: "How could you have managed this trade to increase the profit?",
+                            id: "Bagaimana kamu bisa mengelola transaksi ini agar bisa memperbesar profit?"
+                        },
+                        {
+                            en: "What can you do to repeat this type of trade in the future?",
+                            id: "Apa yang bisa kamu lakukan untuk mengulangi jenis transaksi seperti ini di masa depan?"
+                        }
+                    ],
+                    NO: [
+                        {
+                            en: "Where did you deviate from your plan or approach and why?",
+                            id: "Di bagian mana kamu menyimpang dari rencana atau metodemu, dan mengapa?"
+                        },
+                        {
+                            en: "How could this flawed win have been avoided in the future?",
+                            id: "Bagaimana profit yang bercelah/cacat ini bisa dihindari di masa depan?"
+                        },
+                        {
+                            en: "What specifically was done incorrectly in this trade despite the outcome?",
+                            id: "Apa hal spesifik yang dilakukan secara salah pada transaksi ini terlepas dari hasilnya?"
+                        }
                     ]
                 }
             },
             LOSS: {
-                branchQuestionEn: "Is this a trade you would take again without knowing the outcome was a loss?",
-                branchQuestionId: "Apakah ini jenis transaksi yang tetap akan kamu ambil tanpa tahu bahwa hasilnya bakal rugi?",
-                YES: {
-                    tag: "Good Loss (System Loss)",
-                    questions: [
-                        { en: "Was there any logical way to avoid this loss in the moment?", id: "Apakah ada cara logis untuk menghindari kerugian ini saat kejadian?" },
-                        { en: "What specifically was done well in this trade despite the outcome?", id: "Apa hal spesifik yang sudah dilakukan dengan baik pada transaksi ini terlepas dari hasilnya?" },
-                        { en: "Were emotions controlled after this losing trade was realized?", id: "Apakah emosimu tetap terkendali setelah kerugian pada transaksi ini terjadi?" }
-                    ]
-                },
-                NO: {
-                    tag: "Bad Loss (Rule Deviation)",
-                    questions: [
-                        { en: "Where did you deviate from your plan or approach and why?", id: "Di bagian mana kamu menyimpang dari rencana atau metodemu, dan mengapa?" },
-                        { en: "What were the warning signs that led into this losing trade?", id: "Apa saja tanda-tanda peringatan yang mengarah ke transaksi yang rugi ini?" },
-                        { en: "Did your response to the outcome of this trade impact following trades?", id: "Apakah reaksimu terhadap hasil transaksi ini memengaruhi transaksi-transaksi berikutnya?" }
+                titleEN: "Loss (Rugi)",
+                titleID: "Bagian 2: Loss (Rugi)",
+                branchQuestionEN: "Is this a trade you would take again without knowing the outcome was a loss?",
+                branchQuestionID: "Apakah ini jenis transaksi yang tetap akan kamu ambil tanpa tahu bahwa hasilnya bakal rugi?",
+                branches: {
+                    YES: [
+                        {
+                            en: "Was there any logical way to avoid this loss in the moment?",
+                            id: "Apakah ada cara logis untuk menghindari kerugian ini saat kejadian?"
+                        },
+                        {
+                            en: "What specifically was done well in this trade despite the outcome?",
+                            id: "Apa hal spesifik yang sudah dilakukan dengan baik pada transaksi ini terlepas dari hasilnya?"
+                        },
+                        {
+                            en: "Were emotions controlled after this losing trade was realized?",
+                            id: "Apakah emosimu tetap terkendali setelah kerugian pada transaksi ini terjadi?"
+                        }
+                    ],
+                    NO: [
+                        {
+                            en: "Where did you deviate from your plan or approach and why?",
+                            id: "Di bagian mana kamu menyimpang dari rencana atau metodemu, dan mengapa?"
+                        },
+                        {
+                            en: "What were the warning signs that led into this losing trade?",
+                            id: "Apa saja tanda-tanda peringatan yang mengarah ke transaksi yang rugi ini?"
+                        },
+                        {
+                            en: "Did your response to the outcome of this trade impact following trades?",
+                            id: "Apakah reaksimu terhadap hasil transaksi ini memengaruhi transaksi-transaksi berikutnya?"
+                        }
                     ]
                 }
             },
-            NO_TRADES: {
-                branchQuestionEn: "Were there any valid trades that you missed during the trading day?",
-                branchQuestionId: "Apakah ada transaksi yang valid yang terlewat olehmu selama hari trading tersebut?",
-                NO: {
-                    tag: "Disciplined Inactivity",
-                    questions: [
-                        { en: "What conditions were missing that prevented a valid setup?", id: "Kondisi apa yang kurang sehingga tidak terbentuk setup yang valid?" },
-                        { en: "What reinforced your confidence to remain inactive today?", id: "Apa yang memperkuat keyakinanmu untuk tetap tidak masuk ke pasar hari ini?" },
-                        { en: "Did avoiding unnecessary risk protect your mental clarity or capital?", id: "Apakah menghindari risiko yang tidak perlu berhasil menjaga kejelasan mental atau modalmu?" }
-                    ]
-                },
-                YES: {
-                    tag: "Missed Opportunity",
-                    questions: [
-                        { en: "What specifically caused you to miss the valid opportunity?", id: "Apa hal spesifik yang menyebabkan kamu melewatkan peluang yang valid tersebut?" },
-                        { en: "Was the setup identified in real time or only recognized afterward?", id: "Apakah setup tersebut teridentifikasi secara real-time atau baru disadari belakangan?" },
-                        { en: "What process improvement would have allowed execution?", id: "Perbaikan proses seperti apa yang memungkinkanmu untuk melakukan eksekusi?" }
+            NOTRADE: {
+                titleEN: "No Trades (Tidak Ada Transaksi)",
+                titleID: "Bagian 3: No Trades (Tidak Ada Transaksi)",
+                branchQuestionEN: "Were there any valid trades that you missed during the trading day?",
+                branchQuestionID: "Apakah ada transaksi yang valid yang terlewat olehmu selama hari trading tersebut?",
+                branches: {
+                    NO: [
+                        {
+                            en: "What conditions were missing that prevented a valid setup?",
+                            id: "Kondisi apa yang kurang sehingga tidak terbentuk setup yang valid?"
+                        },
+                        {
+                            en: "What reinforced your confidence to remain inactive today?",
+                            id: "Apa yang memperkuat keyakinanmu untuk tetap tidak masuk ke pasar hari ini?"
+                        },
+                        {
+                            en: "Did avoiding unnecessary risk protect your mental clarity or capital?",
+                            id: "Apakah menghindari risiko yang tidak perlu berhasil menjaga kejelasan mental atau modalmu?"
+                        }
+                    ],
+                    YES: [
+                        {
+                            en: "What specifically caused you to miss the valid opportunity?",
+                            id: "Apa hal spesifik yang menyebabkan kamu melewatkan peluang yang valid tersebut?"
+                        },
+                        {
+                            en: "Was the setup identified in real time or only recognized afterward?",
+                            id: "Apakah setup tersebut teridentifikasi secara real-time atau baru disadari belakangan?"
+                        },
+                        {
+                            en: "What process improvement would have allowed execution?",
+                            id: "Perbaikan proses seperti apa yang memungkinkanmu untuk melakukan eksekusi?"
+                        }
                     ]
                 }
             }
         };
 
+        // Current Form State Variables
+        let state = {
+            outcome: null, // WIN, LOSS, NOTRADE
+            branch: null,  // YES, NO
+            chartImageData: null,
+            currentHistoryFilter: 'ALL'
+        };
+
+        // Initialize App on DOM Load
+        window.addEventListener('DOMContentLoaded', () => {
+            // Set current date/time in form
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('meta-date').value = now.toISOString().slice(0, 16);
+
+            // Update badge count
+            updateHistoryCount();
+        });
+
         function switchTab(tab) {
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('view-new-review').classList.add('hidden');
-            document.getElementById('view-history').classList.add('hidden');
-            document.getElementById('view-analytics').classList.add('hidden');
+            const viewReview = document.getElementById('view-review');
+            const viewHistory = document.getElementById('view-history');
+            const navNew = document.getElementById('nav-new-btn');
+            const navHist = document.getElementById('nav-history-btn');
 
-            const activeNav = document.getElementById(`nav-${tab}`);
-            if (activeNav) activeNav.classList.add('active');
-
-            const activeView = document.getElementById(`view-${tab}`);
-            if (activeView) activeView.classList.remove('hidden');
-
-            if (tab === 'history') {
-                renderHistoryList();
-            } else if (tab === 'analytics') {
-                renderAnalytics();
-            }
-        }
-
-        function onOutcomeChange(outcome) {
-            selectedOutcome = outcome;
-            selectedBranchAnswer = null;
-
-            const branchContainer = document.getElementById('dynamicBranchContainer');
-            const questionsContainer = document.getElementById('questionsContainer');
-            const branchEn = document.getElementById('branchQuestionEn');
-            const branchId = document.getElementById('branchQuestionId');
-            const btnYes = document.getElementById('btnBranchYes');
-            const btnNo = document.getElementById('btnBranchNo');
-
-            branchContainer.classList.remove('hidden');
-            questionsContainer.classList.add('hidden');
-
-            btnYes.className = "flex-1 sm:flex-initial px-6 py-2.5 rounded-xl border border-brand-border bg-slate-900/80 hover:bg-blue-600 hover:text-white transition font-medium text-sm flex items-center justify-center gap-2 text-gray-300";
-            btnNo.className = "flex-1 sm:flex-initial px-6 py-2.5 rounded-xl border border-brand-border bg-slate-900/80 hover:bg-rose-600 hover:text-white transition font-medium text-sm flex items-center justify-center gap-2 text-gray-300";
-
-            if (QUESTION_TREE[outcome]) {
-                branchEn.textContent = QUESTION_TREE[outcome].branchQuestionEn;
-                branchId.textContent = QUESTION_TREE[outcome].branchQuestionId;
-            }
-        }
-
-        function onBranchAnswer(answer) {
-            selectedBranchAnswer = answer;
-            const questionsContainer = document.getElementById('questionsContainer');
-            const btnYes = document.getElementById('btnBranchYes');
-            const btnNo = document.getElementById('btnBranchNo');
-            const sectionTag = document.getElementById('sectionTag');
-
-            if (answer === 'YES') {
-                btnYes.className = "flex-1 sm:flex-initial px-6 py-2.5 rounded-xl border border-blue-500 bg-blue-600 text-white transition font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20";
-                btnNo.className = "flex-1 sm:flex-initial px-6 py-2.5 rounded-xl border border-brand-border bg-slate-900/80 text-gray-400 hover:bg-slate-800 transition font-medium text-sm flex items-center justify-center gap-2";
+            if (tab === 'review') {
+                viewReview.classList.remove('hidden');
+                viewHistory.classList.add('hidden');
+                navNew.classList.replace('bg-slate-800', 'bg-emerald-600');
+                navHist.classList.replace('bg-emerald-600', 'bg-slate-800');
             } else {
-                btnNo.className = "flex-1 sm:flex-initial px-6 py-2.5 rounded-xl border border-rose-500 bg-rose-600 text-white transition font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-rose-500/20";
-                btnYes.className = "flex-1 sm:flex-initial px-6 py-2.5 rounded-xl border border-brand-border bg-slate-900/80 text-gray-400 hover:bg-slate-800 transition font-medium text-sm flex items-center justify-center gap-2";
-            }
-
-            const branchData = QUESTION_TREE[selectedOutcome][answer];
-            if (branchData) {
-                sectionTag.textContent = `TAG: ${branchData.tag}`;
-                document.getElementById('q1LabelEn').textContent = branchData.questions[0].en;
-                document.getElementById('q1LabelId').textContent = branchData.questions[0].id;
-                document.getElementById('q2LabelEn').textContent = branchData.questions[1].en;
-                document.getElementById('q2LabelId').textContent = branchData.questions[1].id;
-                document.getElementById('q3LabelEn').textContent = branchData.questions[2].en;
-                document.getElementById('q3LabelId').textContent = branchData.questions[2].id;
-                questionsContainer.classList.remove('hidden');
+                viewReview.classList.add('hidden');
+                viewHistory.classList.remove('hidden');
+                navHist.classList.replace('bg-slate-800', 'bg-emerald-600');
+                navNew.classList.replace('bg-emerald-600', 'bg-slate-800');
+                renderHistoryList();
             }
         }
 
-        function handleChartFileUpload(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    uploadedChartBase64 = e.target.result;
-                    const preview = document.getElementById('chartPreviewImg');
-                    const container = document.getElementById('chartPreviewContainer');
-                    if (preview && container) {
-                        preview.src = uploadedChartBase64;
-                        container.classList.remove('hidden');
-                    }
-                };
-                reader.readAsDataURL(file);
+        function selectOutcome(outcomeType) {
+            state.outcome = outcomeType;
+            state.branch = null; // Reset branch
+
+            // Update outcome buttons styling
+            document.querySelectorAll('.outcome-btn').forEach(btn => {
+                btn.classList.remove('border-emerald-500', 'border-rose-500', 'border-amber-500', 'bg-slate-800/80');
+                btn.classList.add('border-slate-800');
+                btn.querySelector('.check-icon').classList.add('opacity-0');
+            });
+
+            const selectedBtn = document.getElementById(`btn-outcome-${outcomeType.toLowerCase()}`);
+            const borderColor = outcomeType === 'WIN' ? 'border-emerald-500' : outcomeType === 'LOSS' ? 'border-rose-500' : 'border-amber-500';
+            selectedBtn.classList.remove('border-slate-800');
+            selectedBtn.classList.add(borderColor, 'bg-slate-800/80');
+            selectedBtn.querySelector('.check-icon').classList.remove('opacity-0');
+
+            // Show dynamic section
+            const container = document.getElementById('dynamic-questions-container');
+            container.classList.remove('hidden');
+            
+            // Render Branch Question
+            const schema = REVIEW_SCHEMA[outcomeType];
+            document.getElementById('section-badge').innerText = schema.titleID;
+            document.getElementById('branch-q-en').innerText = schema.branchQuestionEN;
+            document.getElementById('branch-q-id').innerText = schema.branchQuestionID;
+
+            // Reset Branch Buttons
+            document.querySelectorAll('.branch-btn').forEach(b => {
+                b.classList.remove('bg-emerald-600', 'bg-rose-600', 'text-white', 'border-emerald-500', 'border-rose-500');
+                b.classList.add('bg-slate-900');
+            });
+
+            // Hide text questions until branch selected
+            document.getElementById('text-questions-card').classList.add('hidden');
+            document.getElementById('actions-bar').classList.add('hidden');
+        }
+
+        function selectBranch(branchVal) {
+            if (!state.outcome) return;
+            state.branch = branchVal;
+
+            const btnYes = document.getElementById('btn-branch-yes');
+            const btnNo = document.getElementById('btn-branch-no');
+
+            btnYes.classList.remove('bg-emerald-600', 'text-white', 'border-emerald-500');
+            btnNo.classList.remove('bg-rose-600', 'text-white', 'border-rose-500');
+
+            if (branchVal === 'YES') {
+                btnYes.classList.add('bg-emerald-600', 'text-white', 'border-emerald-500');
+            } else {
+                btnNo.classList.add('bg-rose-600', 'text-white', 'border-rose-500');
             }
+
+            // Populate Questions
+            const qList = REVIEW_SCHEMA[state.outcome].branches[branchVal];
+            
+            document.getElementById('q1-en').innerText = `1. ${qList[0].en}`;
+            document.getElementById('q1-id').innerText = qList[0].id;
+
+            document.getElementById('q2-en').innerText = `2. ${qList[1].en}`;
+            document.getElementById('q2-id').innerText = qList[1].id;
+
+            document.getElementById('q3-en').innerText = `3. ${qList[2].en}`;
+            document.getElementById('q3-id').innerText = qList[2].id;
+
+            // Display text question block and actions
+            document.getElementById('text-questions-card').classList.remove('hidden');
+            document.getElementById('actions-bar').classList.remove('hidden');
         }
 
-        function removeChartImage() {
-            uploadedChartBase64 = null;
-            const fileInput = document.getElementById('chartFileInput');
-            const urlInput = document.getElementById('chartUrl');
-            const container = document.getElementById('chartPreviewContainer');
-            if (fileInput) fileInput.value = '';
-            if (urlInput) urlInput.value = '';
-            if (container) container.classList.add('hidden');
+        function handleImageUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (file.size > 4 * 1024 * 1024) { // 4MB limit for localstorage
+                showToast("Ukuran gambar maksimal 4MB", "error");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                state.chartImageData = evt.target.result;
+                document.getElementById('image-filename').innerText = file.name;
+                document.getElementById('image-preview').src = evt.target.result;
+                document.getElementById('image-preview-container').classList.remove('hidden');
+                document.getElementById('remove-img-btn').classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
         }
 
-        function escapeHtml(str) {
-            if (!str) return '';
-            return str.replace(/&/g, "&amp;")
-                      .replace(/</g, "&lt;")
-                      .replace(/>/g, "&gt;")
-                      .replace(/"/g, "&quot;")
-                      .replace(/'/g, "&#039;");
+        function removeImage() {
+            state.chartImageData = null;
+            document.getElementById('chart-image-input').value = "";
+            document.getElementById('image-filename').innerText = "Belum ada gambar terpilih";
+            document.getElementById('image-preview-container').classList.add('hidden');
+            document.getElementById('remove-img-btn').classList.add('hidden');
         }
 
-        function getFormEntry() {
-            if (!selectedOutcome || !selectedBranchAnswer) return null;
-            const qList = QUESTION_TREE[selectedOutcome][selectedBranchAnswer].questions;
+        function getFormData() {
+            const date = document.getElementById('meta-date').value || new Date().toISOString();
+            const pair = (document.getElementById('meta-pair').value || 'GENERAL').toUpperCase();
+            const session = document.getElementById('meta-session').value;
+            const rr = document.getElementById('meta-rr').value || 'N/A';
+
+            const ans1 = document.getElementById('ans-1').value.trim();
+            const ans2 = document.getElementById('ans-2').value.trim();
+            const ans3 = document.getElementById('ans-3').value.trim();
+            const extra = document.getElementById('ans-extra').value.trim();
+
+            const schema = REVIEW_SCHEMA[state.outcome];
+            const qList = schema.branches[state.branch];
+
             return {
-                pair: (document.getElementById('tradePair').value || 'GENERAL').toUpperCase(),
-                date: document.getElementById('tradeDate').value || new Date().toISOString(),
-                direction: document.getElementById('tradeDirection').value,
-                returnVal: document.getElementById('tradeReturn').value || 'N/A',
-                outcome: selectedOutcome,
-                branchAnswer: selectedBranchAnswer,
-                tag: QUESTION_TREE[selectedOutcome][selectedBranchAnswer].tag,
-                chartUrl: uploadedChartBase64 || document.getElementById('chartUrl').value || '',
-                qa: [
-                    { questionEn: qList[0].en, questionId: qList[0].id, answer: document.getElementById('q1Answer').value },
-                    { questionEn: qList[1].en, questionId: qList[1].id, answer: document.getElementById('q2Answer').value },
-                    { questionEn: qList[2].en, questionId: qList[2].id, answer: document.getElementById('q3Answer').value }
-                ]
+                id: 'tr_' + Date.now(),
+                timestamp: Date.now(),
+                meta: { date, pair, session, rr },
+                outcome: state.outcome,
+                branch: state.branch,
+                titleID: schema.titleID,
+                branchQ_EN: schema.branchQuestionEN,
+                branchQ_ID: schema.branchQuestionID,
+                questions: [
+                    { en: qList[0].en, id: qList[0].id, ans: ans1 },
+                    { en: qList[1].en, id: qList[1].id, ans: ans2 },
+                    { en: qList[2].en, id: qList[2].id, ans: ans3 }
+                ],
+                extraNote: extra,
+                image: state.chartImageData
             };
         }
 
-        function handleFormSubmit(event) {
-            event.preventDefault();
-            const entry = getFormEntry();
-            if (!entry) {
-                showToast('Harap selesaikan pertanyaan terlebih dahulu.', 'error');
-                return;
-            }
-            entry.id = 'trade_' + Date.now();
-            journals.unshift(entry);
-            localStorage.setItem('trade_reviews_data', JSON.stringify(journals));
-            updateBadges();
-            showToast('Jurnal evaluasi berhasil disimpan!', 'success');
-            resetForm();
-            switchTab('history');
-        }
+        function saveToJournal() {
+            if (!validateForm()) return;
 
-        function resetForm() {
-            document.getElementById('tradeForm').reset();
-            selectedOutcome = null;
-            selectedBranchAnswer = null;
-            uploadedChartBase64 = null;
-            document.getElementById('dynamicBranchContainer').classList.add('hidden');
-            document.getElementById('questionsContainer').classList.add('hidden');
-            const previewContainer = document.getElementById('chartPreviewContainer');
-            if (previewContainer) previewContainer.classList.add('hidden');
-        }
-
-        function generateMarkdown(item) {
-            let md = `# Post-Trade Review: ${item.pair}\n\n`;
-            md += `- **Date:** ${new Date(item.date).toLocaleString()}\n`;
-            md += `- **Direction:** ${item.direction}\n`;
-            md += `- **Outcome:** ${item.outcome}\n`;
-            md += `- **Return:** ${item.returnVal}\n`;
-            md += `- **Tag:** ${item.tag}\n\n---\n\n`;
-            md += `### Questions & Answers\n\n`;
-            (item.qa || []).forEach((q, idx) => {
-                md += `#### ${idx + 1}. ${q.questionEn}\n*${q.questionId}*\n\n> ${q.answer ? q.answer.replace(/\n/g, '\n> ') : 'N/A'}\n\n`;
-            });
-            if (item.chartUrl) {
-                md += `### Chart Screenshot\n![Chart](${item.chartUrl})\n`;
-            }
-            return md;
-        }
-
-        function copyToClipboard(text) {
-            const textarea = document.createElement('textarea');
-            textarea.value = text;
-            textarea.style.position = 'fixed';
-            textarea.style.opacity = '0';
-            document.body.appendChild(textarea);
-            textarea.focus();
-            textarea.select();
+            const entry = getFormData();
+            const journal = getJournalFromStorage();
+            journal.unshift(entry); // add to top
+            
             try {
-                document.execCommand('copy');
-                showToast('Berhasil disalin ke clipboard!', 'success');
-            } catch (err) {
-                showToast('Gagal menyalin teks.', 'error');
+                localStorage.setItem('tr_journal_data', JSON.stringify(journal));
+                updateHistoryCount();
+                showToast(" Review berhasil disimpan ke Journal!", "success");
+            } catch(e) {
+                showToast("Gagal menyimpan. Memori lokal penuh (coba hapus/kecilkan gambar).", "error");
             }
-            document.body.removeChild(textarea);
         }
 
-        function copyMarkdownFromForm() {
-            const entry = getFormEntry();
-            if (!entry) {
-                showToast('Pilih opsi Win/Loss/No Trades terlebih dahulu.', 'error');
-                return;
-            }
-            copyToClipboard(generateMarkdown(entry));
+        function getJournalFromStorage() {
+            const data = localStorage.getItem('tr_journal_data');
+            return data ? JSON.parse(data) : [];
         }
 
-        async function preparePdfChartImage(url) {
-            if (!url) return null;
-            if (url.startsWith('data:image/')) return url;
-            return new Promise((resolve) => {
-                const img = new Image();
-                img.crossOrigin = 'Anonymous';
-                img.src = url;
-                img.onload = function() {
-                    try {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = img.naturalWidth || img.width;
-                        canvas.height = img.naturalHeight || img.height;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0);
-                        resolve(canvas.toDataURL('image/jpeg', 0.9));
-                    } catch (e) {
-                        resolve(url);
-                    }
-                };
-                img.onerror = function() {
-                    resolve(null);
-                };
+        function updateHistoryCount() {
+            const journal = getJournalFromStorage();
+            document.getElementById('history-count-badge').innerText = journal.length;
+        }
+
+        function validateForm() {
+            if (!state.outcome) {
+                showToast("Pilih hasil transaksi terlebih dahulu (Win, Loss, No Trades).", "error");
+                return false;
+            }
+            if (!state.branch) {
+                showToast("Jawab pertanyaan pilihan Ya/Tidak terlebih dahulu.", "error");
+                return false;
+            }
+            return true;
+        }
+
+        function generatePDF(dataOverride = null) {
+            const data = dataOverride || (validateForm() ? getFormData() : null);
+            if (!data) return;
+
+            // Fill PDF DOM template
+            document.getElementById('pdf-meta-date').innerText = new Date(data.meta.date).toLocaleString('id-ID');
+            document.getElementById('pdf-meta-pair').innerText = data.meta.pair;
+            document.getElementById('pdf-meta-session').innerText = data.meta.session;
+            document.getElementById('pdf-meta-rr').innerText = data.meta.rr;
+
+            const badge = document.getElementById('pdf-outcome-badge');
+            badge.innerText = data.outcome;
+            if (data.outcome === 'WIN') {
+                badge.style.backgroundColor = '#dcfce7';
+                badge.style.color = '#15803d';
+            } else if (data.outcome === 'LOSS') {
+                badge.style.backgroundColor = '#ffe4e6';
+                badge.style.color = '#b91c1c';
+            } else {
+                badge.style.backgroundColor = '#fef3c7';
+                badge.style.color = '#b45309';
+            }
+
+            document.getElementById('pdf-section-title').innerText = data.titleID;
+            document.getElementById('pdf-branch-q-en').innerText = data.branchQ_EN;
+            document.getElementById('pdf-branch-q-id').innerText = data.branchQ_ID;
+            document.getElementById('pdf-branch-answer').innerText = data.branch === 'YES' ? 'YES / YA' : 'NO / TIDAK';
+
+            // Questions
+            document.getElementById('pdf-q1-en').innerText = `1. ${data.questions[0].en}`;
+            document.getElementById('pdf-q1-id').innerText = data.questions[0].id;
+            document.getElementById('pdf-a1-text').innerText = data.questions[0].ans || '(Tidak ada jawaban)';
+
+            document.getElementById('pdf-q2-en').innerText = `2. ${data.questions[1].en}`;
+            document.getElementById('pdf-q2-id').innerText = data.questions[1].id;
+            document.getElementById('pdf-a2-text').innerText = data.questions[1].ans || '(Tidak ada jawaban)';
+
+            document.getElementById('pdf-q3-en').innerText = `3. ${data.questions[2].en}`;
+            document.getElementById('pdf-q3-id').innerText = data.questions[2].id;
+            document.getElementById('pdf-a3-text').innerText = data.questions[2].ans || '(Tidak ada jawaban)';
+
+            // Extra
+            const extraContainer = document.getElementById('pdf-extra-container');
+            if (data.extraNote) {
+                extraContainer.style.display = 'block';
+                document.getElementById('pdf-aextra-text').innerText = data.extraNote;
+            } else {
+                extraContainer.style.display = 'none';
+            }
+
+            // Image
+            const imgContainer = document.getElementById('pdf-image-container');
+            if (data.image) {
+                imgContainer.style.display = 'block';
+                document.getElementById('pdf-chart-img').src = data.image;
+            } else {
+                imgContainer.style.display = 'none';
+            }
+
+            showToast("Menyiapkan dokumen PDF...", "info");
+
+            // Configure html2pdf options to avoid text splitting
+            const element = document.getElementById('pdf-render-area');
+            element.style.display = 'block'; // temporary show offscreen
+
+            const cleanPair = data.meta.pair.replace(/[^a-zA-Z0-9]/g, '_');
+            const cleanDate = new Date(data.meta.date).toISOString().slice(0,10);
+            const fileName = `Trade_Review_${cleanPair}_${cleanDate}.pdf`;
+
+            const opt = {
+                margin:       [12, 12, 12, 12],
+                filename:     fileName,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true, logging: false },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+            };
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                element.style.display = 'none';
+                showToast("PDF Berhasil Di-download!", "success");
+            }).catch(err => {
+                element.style.display = 'none';
+                showToast("Gagal membuat PDF. Coba kembali.", "error");
             });
-        }
-
-        async function downloadPDF(item) {
-            const loadingOverlay = document.getElementById('pdfLoadingOverlay');
-            if (loadingOverlay) {
-                loadingOverlay.classList.remove('hidden');
-                loadingOverlay.classList.add('flex');
-            }
-
-            try {
-                const oldContainer = document.getElementById('pdf-render-container');
-                if (oldContainer) oldContainer.remove();
-
-                const safeChartImage = await preparePdfChartImage(item.chartUrl);
-
-                const pdfContainer = document.createElement('div');
-                pdfContainer.id = 'pdf-render-container';
-                pdfContainer.style.cssText = `
-                    position: absolute;
-                    left: -9999px;
-                    top: 0;
-                    width: 794px;
-                    padding: 32px;
-                    font-family: 'Inter', Arial, sans-serif;
-                    color: #0f172a !important;
-                    background-color: #ffffff !important;
-                    box-sizing: border-box;
-                `;
-
-                const formattedDate = item.date ? new Date(item.date).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' }) : 'N/A';
-                const mainQ = "Was the outcome of the trade a win or a loss? / Apakah hasil dari transaksi tersebut profit atau rugi?";
-                const branchQEn = QUESTION_TREE[item.outcome] ? QUESTION_TREE[item.outcome].branchQuestionEn : '';
-                const branchQId = QUESTION_TREE[item.outcome] ? QUESTION_TREE[item.outcome].branchQuestionId : '';
-
-                pdfContainer.innerHTML = `
-                    <style>
-                        * { box-sizing: border-box; }
-                        .pdf-block {
-                            page-break-inside: avoid !important;
-                            break-inside: avoid !important;
-                            margin-bottom: 12px;
-                        }
-                        .pdf-card {
-                            background-color: #f8fafc !important;
-                            border: 1px solid #cbd5e1 !important;
-                            border-radius: 8px !important;
-                            padding: 12px 14px !important;
-                            color: #0f172a !important;
-                        }
-                        .pdf-answer {
-                            font-size: 11px !important;
-                            color: #1e293b !important;
-                            white-space: pre-wrap !important;
-                            word-break: break-word !important;
-                            overflow-wrap: anywhere !important;
-                            background-color: #ffffff !important;
-                            padding: 10px 12px !important;
-                            border-radius: 6px !important;
-                            border: 1px solid #cbd5e1 !important;
-                            line-height: 1.5 !important;
-                        }
-                    </style>
-
-                    <div class="pdf-block" style="border-bottom: 3px solid #2563eb; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <h1 style="margin: 0; font-size: 20px; color: #0f172a; font-weight: 800;">Post-Trade Review Report</h1>
-                            <p style="margin: 2px 0 0 0; color: #64748b; font-size: 11px;">TradeReview Pro System</p>
-                        </div>
-                        <div>
-                            <span style="display: inline-block; padding: 4px 14px; background-color: #eff6ff; border-radius: 20px; font-weight: 800; font-size: 13px; color: #2563eb; border: 1px solid #bfdbfe;">${item.pair || 'GENERAL'}</span>
-                        </div>
-                    </div>
-
-                    <table class="pdf-block" style="width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 12px; background-color: #f8fafc; border: 1px solid #cbd5e1;">
-                        <tr>
-                            <td style="padding: 8px 10px; border: 1px solid #cbd5e1; font-weight: bold; width: 25%; color: #475569;">Tanggal</td>
-                            <td style="padding: 8px 10px; border: 1px solid #cbd5e1; color: #0f172a;">${formattedDate}</td>
-                            <td style="padding: 8px 10px; border: 1px solid #cbd5e1; font-weight: bold; width: 25%; color: #475569;">Posisi</td>
-                            <td style="padding: 8px 10px; border: 1px solid #cbd5e1; color: #0f172a;">${item.direction || 'N/A'}</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 8px 10px; border: 1px solid #cbd5e1; font-weight: bold; color: #475569;">Return</td>
-                            <td style="padding: 8px 10px; border: 1px solid #cbd5e1; color: #0f172a;">${item.returnVal || 'N/A'}</td>
-                            <td style="padding: 8px 10px; border: 1px solid #cbd5e1; font-weight: bold; color: #475569;">Tag</td>
-                            <td style="padding: 8px 10px; border: 1px solid #cbd5e1; font-weight: bold; color: #2563eb;">${item.tag || 'N/A'}</td>
-                        </tr>
-                    </table>
-
-                    <div class="pdf-block pdf-card" style="border-left: 4px solid #3b82f6 !important;">
-                        <div style="font-size: 10px; font-weight: 800; color: #1d4ed8; text-transform: uppercase;">1. Main Outcome</div>
-                        <div style="font-size: 11px; font-weight: 700; color: #1e293b; margin: 2px 0;">${mainQ}</div>
-                        <div style="font-size: 11px; font-weight: 800;">Hasil: <span style="color: ${item.outcome === 'WIN' ? '#059669' : item.outcome === 'LOSS' ? '#dc2626' : '#0284c7'};">${item.outcome}</span></div>
-                    </div>
-
-                    <div class="pdf-block pdf-card" style="border-left: 4px solid #6366f1 !important;">
-                        <div style="font-size: 10px; font-weight: 800; color: #4338ca; text-transform: uppercase;">2. Decision Path</div>
-                        <div style="font-size: 11px; font-weight: 700; color: #1e293b; margin-top: 2px;">${branchQEn}</div>
-                        <div style="font-size: 10px; color: #64748b; font-style: italic; margin-bottom: 2px;">${branchQId}</div>
-                        <div style="font-size: 11px; font-weight: 800;">Jawaban: ${item.branchAnswer === 'YES' ? 'Yes / Ya' : 'No / Tidak'}</div>
-                    </div>
-
-                    <div style="margin-top: 10px;">
-                        <h3 style="font-size: 12px; border-bottom: 2px solid #cbd5e1; padding-bottom: 4px; color: #0f172a; margin-bottom: 10px; font-weight: 800;">3. Deep Dive Review Answers</h3>
-                        ${(item.qa || []).map((q, idx) => `
-                            <div class="pdf-block pdf-card">
-                                <div style="font-size: 11px; font-weight: 700; color: #1e293b;">Q${idx + 1}: ${q.questionEn}</div>
-                                <div style="font-size: 10px; color: #64748b; font-style: italic; margin-bottom: 6px;">${q.questionId}</div>
-                                <div class="pdf-answer">${q.answer ? escapeHtml(q.answer) : '<em style="color: #94a3b8;">Tidak ada tanggapan tertulis</em>'}</div>
-                            </div>
-                        `).join('')}
-                    </div>
-
-                    ${safeChartImage ? `
-                        <div class="pdf-block pdf-card" style="margin-top: 10px;">
-                            <div style="font-size: 10px; font-weight: 800; color: #475569; margin-bottom: 4px; text-transform: uppercase;">Chart Screenshot</div>
-                            <div style="text-align: center; margin: 4px 0; background-color: #0f172a; padding: 8px; border-radius: 6px;">
-                                <img src="${safeChartImage}" style="max-width: 100%; max-height: 300px; object-fit: contain; border-radius: 4px;" alt="Chart Screenshot" />
-                            </div>
-                        </div>
-                    ` : ''}
-                `;
-
-                document.body.appendChild(pdfContainer);
-
-                const opt = {
-                    margin:       [10, 10, 10, 10],
-                    filename:     `Trade_Review_${(item.pair || 'TRADE').replace(/[^a-zA-Z0-9]/g, '_')}_${(item.date || '').slice(0,10)}.pdf`,
-                    image:        { type: 'jpeg', quality: 0.98 },
-                    html2canvas:  { scale: 2, useCORS: true, allowTaint: true, logging: false, windowWidth: 800 },
-                    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                    pagebreak:    { mode: ['css', 'legacy'] }
-                };
-
-                await html2pdf().set(opt).from(pdfContainer).save();
-                showToast('File PDF berhasil didownload!', 'success');
-            } catch (err) {
-                console.error('PDF Error:', err);
-                showToast('Gagal memproses PDF. Membuka opsi cetak...', 'error');
-                printReport(item);
-            } finally {
-                const el = document.getElementById('pdf-render-container');
-                if (el) el.remove();
-                if (loadingOverlay) {
-                    loadingOverlay.classList.add('hidden');
-                    loadingOverlay.classList.remove('flex');
-                }
-            }
-        }
-
-        function downloadPDFById(id) {
-            const item = journals.find(j => j.id === id);
-            if (item) downloadPDF(item);
-        }
-
-        function downloadPDFFromForm() {
-            const entry = getFormEntry();
-            if (!entry) {
-                showToast('Harap selesaikan pertanyaan terlebih dahulu.', 'error');
-                return;
-            }
-            downloadPDF(entry);
-        }
-
-        function printReport(item) {
-            const formattedDate = item.date ? new Date(item.date).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' }) : 'N/A';
-            const mainQ = "Was the outcome of the trade a win or a loss? / Apakah hasil dari transaksi tersebut profit atau rugi?";
-            const branchQEn = QUESTION_TREE[item.outcome] ? QUESTION_TREE[item.outcome].branchQuestionEn : '';
-            const branchQId = QUESTION_TREE[item.outcome] ? QUESTION_TREE[item.outcome].branchQuestionId : '';
-
-            const printWin = window.open('', '_blank');
-            if (!printWin) {
-                showToast('Gagal membuka jendela cetak. Izinkan pop-up browser.', 'error');
-                return;
-            }
-
-            printWin.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Trade Review - ${item.pair || 'GENERAL'}</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; color: #0f172a; padding: 20px; line-height: 1.5; }
-                        .header { border-bottom: 2px solid #2563eb; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-                        .badge { padding: 4px 10px; background: #eff6ff; border-radius: 12px; font-weight: bold; color: #2563eb; }
-                        table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 12px; }
-                        td { padding: 8px; border: 1px solid #cbd5e1; }
-                        .card { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px; margin-bottom: 12px; page-break-inside: avoid; }
-                        .answer { background: #fff; border: 1px solid #cbd5e1; padding: 8px; border-radius: 4px; white-space: pre-wrap; font-size: 12px; margin-top: 4px; }
-                    </style>
-                </head>
-                <body>
-                    <div class="header">
-                        <div>
-                            <h2 style="margin:0;">Post-Trade Review Report</h2>
-                            <span style="font-size:11px; color:#64748b;">TradeReview Pro System</span>
-                        </div>
-                        <div class="badge">${item.pair || 'GENERAL'}</div>
-                    </div>
-                    <table>
-                        <tr>
-                            <td><b>Tanggal:</b> ${formattedDate}</td>
-                            <td><b>Posisi:</b> ${item.direction || 'N/A'}</td>
-                        </tr>
-                        <tr>
-                            <td><b>Return:</b> ${item.returnVal || 'N/A'}</td>
-                            <td><b>Tag:</b> ${item.tag || 'N/A'}</td>
-                        </tr>
-                    </table>
-                    <div class="card">
-                        <div><b>1. MAIN OUTCOME:</b> ${item.outcome}</div>
-                        <div style="font-size:11px; color:#64748b;">${mainQ}</div>
-                    </div>
-                    <div class="card">
-                        <div><b>2. DECISION:</b> ${item.branchAnswer === 'YES' ? 'Yes / Ya' : 'No / Tidak'}</div>
-                        <div style="font-size:11px; color:#1e293b;">${branchQEn}</div>
-                        <div style="font-size:10px; color:#64748b;">${branchQId}</div>
-                    </div>
-                    <h3>3. Deep Dive Answers</h3>
-                    ${(item.qa || []).map((q, idx) => `
-                        <div class="card">
-                            <div><b>Q${idx+1}: ${q.questionEn}</b></div>
-                            <div style="font-size:11px; color:#64748b; font-style:italic;">${q.questionId}</div>
-                            <div class="answer">${q.answer ? escapeHtml(q.answer) : '<em>Tidak ada tanggapan tertulis</em>'}</div>
-                        </div>
-                    `).join('')}
-                    ${item.chartUrl ? `
-                        <div class="card" style="text-align:center;">
-                            <b>Chart Screenshot</b><br>
-                            <img src="${item.chartUrl}" style="max-width:100%; max-height:350px; margin-top:8px; border-radius:4px;" />
-                        </div>
-                    ` : ''}
-                    <script>
-                        window.onload = function() { window.print(); };
-                    <\/script>
-                </body>
-                </html>
-            `);
-            printWin.document.close();
-        }
-
-        function printReportFromForm() {
-            const entry = getFormEntry();
-            if (!entry) {
-                showToast('Harap selesaikan pertanyaan terlebih dahulu.', 'error');
-                return;
-            }
-            printReport(entry);
-        }
-
-        function openModal(id) {
-            const item = journals.find(j => j.id === id);
-            if (!item) return;
-
-            const modal = document.getElementById('detailModal');
-            const title = document.getElementById('modalTitle');
-            const badge = document.getElementById('modalCategoryBadge');
-            const body = document.getElementById('modalBody');
-            const copyBtn = document.getElementById('modalCopyBtn');
-            const pdfBtn = document.getElementById('modalPdfBtn');
-            const printBtn = document.getElementById('modalPrintBtn');
-
-            title.textContent = `${item.pair} - Review Detail`;
-            badge.textContent = item.tag;
-
-            let badgeClass = "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
-            if (item.outcome === 'LOSS') badgeClass = "bg-rose-500/20 text-rose-400 border border-rose-500/30";
-            if (item.outcome === 'NO_TRADES') badgeClass = "bg-sky-500/20 text-sky-400 border border-sky-500/30";
-            badge.className = `text-xs font-mono uppercase px-2.5 py-0.5 rounded-full font-semibold ${badgeClass}`;
-
-            copyBtn.onclick = () => copyToClipboard(generateMarkdown(item));
-            pdfBtn.onclick = () => downloadPDF(item);
-            if (printBtn) printBtn.onclick = () => printReport(item);
-
-            const mainQ = "Was the outcome of the trade a win or a loss? / Apakah hasil dari transaksi tersebut profit atau rugi?";
-            const branchQEn = QUESTION_TREE[item.outcome] ? QUESTION_TREE[item.outcome].branchQuestionEn : '';
-            const branchQId = QUESTION_TREE[item.outcome] ? QUESTION_TREE[item.outcome].branchQuestionId : '';
-
-            body.innerHTML = `
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-900/80 p-3 rounded-xl border border-brand-border text-xs">
-                    <div><span class="text-gray-500 block">Tanggal</span><span class="text-gray-200 font-mono font-medium">${new Date(item.date).toLocaleString()}</span></div>
-                    <div><span class="text-gray-500 block">Posisi</span><span class="text-gray-200 font-mono font-medium">${item.direction}</span></div>
-                    <div><span class="text-gray-500 block">Return</span><span class="text-gray-200 font-mono font-medium">${item.returnVal}</span></div>
-                    <div><span class="text-gray-500 block">Decision</span><span class="text-gray-200 font-mono font-medium">${item.branchAnswer}</span></div>
-                </div>
-
-                <div class="space-y-2">
-                    <span class="text-xs font-semibold text-blue-400 uppercase tracking-wider block">Pertanyaan Utama</span>
-                    <p class="text-sm text-gray-300 font-medium">${mainQ}</p>
-                    <p class="text-sm font-bold text-white bg-slate-900/60 p-2.5 rounded-xl border border-brand-border">Hasil: ${item.outcome}</p>
-                </div>
-
-                <div class="space-y-2">
-                    <span class="text-xs font-semibold text-blue-400 uppercase tracking-wider block">Pertanyaan Cabang</span>
-                    <p class="text-sm text-gray-200 font-medium">${branchQEn}</p>
-                    <p class="text-xs text-gray-400 italic">${branchQId}</p>
-                    <p class="text-sm font-bold text-white bg-slate-900/60 p-2.5 rounded-xl border border-brand-border">Jawaban: ${item.branchAnswer === 'YES' ? 'Yes / Ya' : 'No / Tidak'}</p>
-                </div>
-
-                <div class="space-y-4 pt-2 border-t border-brand-border">
-                    <span class="text-xs font-semibold text-blue-400 uppercase tracking-wider block">Jawaban Evaluasi Mendalam</span>
-                    ${(item.qa || []).map((q, idx) => `
-                        <div class="bg-slate-900/50 p-3.5 rounded-xl border border-brand-border/60 space-y-1">
-                            <p class="text-xs font-semibold text-gray-200">${idx + 1}. ${q.questionEn}</p>
-                            <p class="text-[11px] text-gray-400 italic mb-2">${q.questionId}</p>
-                            <p class="text-sm text-gray-100 whitespace-pre-wrap bg-slate-950/60 p-2.5 rounded-lg border border-brand-border/40 font-sans">${q.answer ? escapeHtml(q.answer) : '<em class="text-gray-600">Tidak ada tanggapan tertulis</em>'}</p>
-                        </div>
-                    `).join('')}
-                </div>
-
-                ${item.chartUrl ? `
-                    <div class="pt-2 border-t border-brand-border">
-                        <span class="text-xs font-semibold text-blue-400 uppercase tracking-wider block mb-2">Screenshot Chart</span>
-                        <div class="rounded-xl overflow-hidden border border-brand-border bg-black/50 p-2 text-center">
-                            <img src="${item.chartUrl}" alt="Chart Screenshot" class="max-h-60 mx-auto object-contain rounded-lg">
-                        </div>
-                    </div>
-                ` : ''}
-            `;
-
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        }
-
-        function closeModal() {
-            const modal = document.getElementById('detailModal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }
-
-        function deleteEntry(id) {
-            journals = journals.filter(j => j.id !== id);
-            localStorage.setItem('trade_reviews_data', JSON.stringify(journals));
-            renderHistoryList();
-            renderAnalytics();
-            updateBadges();
-            showToast('Jurnal telah dihapus.', 'info');
-        }
-
-        function copySingleItemMD(id) {
-            const item = journals.find(j => j.id === id);
-            if (item) copyToClipboard(generateMarkdown(item));
         }
 
         function renderHistoryList() {
-            const container = document.getElementById('historyList');
-            const emptyState = document.getElementById('emptyHistoryState');
-            const search = (document.getElementById('searchInput')?.value || '').toLowerCase();
-            const filter = document.getElementById('filterOutcome')?.value || 'ALL';
+            const container = document.getElementById('history-list-container');
+            const journal = getJournalFromStorage();
+            const searchTerm = document.getElementById('history-search').value.toLowerCase();
 
-            if (!container) return;
-
-            let filtered = journals.filter(j => {
-                const matchSearch = j.pair.toLowerCase().includes(search) || (j.date && j.date.includes(search)) || (j.tag && j.tag.toLowerCase().includes(search));
-                const matchOutcome = filter === 'ALL' || j.outcome === filter;
-                return matchSearch && matchOutcome;
+            const filtered = journal.filter(item => {
+                const matchesFilter = state.currentHistoryFilter === 'ALL' || item.outcome === state.currentHistoryFilter;
+                const matchesSearch = item.meta.pair.toLowerCase().includes(searchTerm) || 
+                                      (item.extraNote && item.extraNote.toLowerCase().includes(searchTerm)) ||
+                                      item.questions.some(q => q.ans.toLowerCase().includes(searchTerm));
+                return matchesFilter && matchesSearch;
             });
 
             if (filtered.length === 0) {
-                container.innerHTML = '';
-                if (emptyState) emptyState.classList.remove('hidden');
+                container.innerHTML = `
+                    <div class="bg-cardbg border border-cardborder rounded-2xl p-8 text-center text-slate-500">
+                        <i class="fa-solid fa-folder-open text-3xl mb-2 text-slate-600"></i>
+                        <p class="text-sm">Belum ada riwayat review ${state.currentHistoryFilter !== 'ALL' ? 'dengan filter ini' : ''}.</p>
+                    </div>
+                `;
                 return;
             }
 
-            if (emptyState) emptyState.classList.add('hidden');
-
             container.innerHTML = filtered.map(item => {
-                let badgeColor = "bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
-                if (item.outcome === 'LOSS') badgeColor = "bg-rose-500/20 text-rose-400 border-rose-500/30";
-                if (item.outcome === 'NO_TRADES') badgeColor = "bg-sky-500/20 text-sky-400 border-sky-500/30";
-
+                const dateStr = new Date(item.meta.date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+                const outcomeClass = item.outcome === 'WIN' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
+                                     item.outcome === 'LOSS' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' :
+                                     'bg-amber-500/10 text-amber-400 border-amber-500/30';
+                
                 return `
-                    <div class="glass-panel p-5 rounded-2xl border border-brand-border space-y-4 hover:border-blue-500/50 transition">
-                        <div class="flex items-center justify-between border-b border-brand-border/60 pb-3">
+                    <div class="bg-cardbg border border-cardborder rounded-xl p-5 hover:border-slate-700 transition space-y-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                            <div class="flex items-center gap-3">
+                                <span class="px-3 py-1 rounded-md border text-xs font-bold uppercase tracking-wide ${outcomeClass}">
+                                    ${item.outcome}
+                                </span>
+                                <h3 class="font-bold text-white text-base">${item.meta.pair}</h3>
+                                <span class="text-xs text-slate-400"><i class="fa-regular fa-clock mr-1"></i>${dateStr}</span>
+                            </div>
                             <div class="flex items-center gap-2">
-                                <span class="text-base font-extrabold text-white font-mono">${item.pair}</span>
-                                <span class="text-[10px] font-mono px-2 py-0.5 rounded-full border ${badgeColor}">${item.tag}</span>
-                            </div>
-                            <span class="text-xs text-gray-400 font-mono">${new Date(item.date).toLocaleDateString()}</span>
-                        </div>
-                        <div class="grid grid-cols-3 gap-2 text-xs bg-slate-900/60 p-2.5 rounded-xl border border-brand-border/40">
-                            <div><span class="text-gray-500 block">Posisi</span><span class="font-semibold text-gray-200 font-mono">${item.direction}</span></div>
-                            <div><span class="text-gray-500 block">Return</span><span class="font-semibold text-gray-200 font-mono">${item.returnVal}</span></div>
-                            <div><span class="text-gray-500 block">Decision</span><span class="font-semibold text-gray-200 font-mono">${item.branchAnswer}</span></div>
-                        </div>
-                        <div class="flex items-center justify-between pt-1">
-                            <button onclick="openModal('${item.id}')" class="text-xs font-semibold text-blue-400 hover:text-blue-300 flex items-center gap-1">
-                                <i class="fa-solid fa-eye"></i> Lihat Detail
-                            </button>
-                            <div class="flex items-center gap-1.5">
-                                <button onclick="downloadPDFById('${item.id}')" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-rose-400 text-xs" title="Download PDF">
-                                    <i class="fa-solid fa-file-pdf"></i>
+                                <button onclick='downloadPDFFromHistory("${item.id}")' class="px-3 py-1.5 rounded-lg bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 border border-emerald-500/30 text-xs font-medium transition flex items-center gap-1">
+                                    <i class="fa-solid fa-file-pdf"></i> Download PDF
                                 </button>
-                                <button onclick="copySingleItemMD('${item.id}')" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-gray-300 text-xs" title="Copy Markdown">
-                                    <i class="fa-solid fa-copy"></i>
-                                </button>
-                                <button onclick="deleteEntry('${item.id}')" class="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-900/50 text-rose-400 text-xs" title="Hapus">
-                                    <i class="fa-solid fa-trash-can"></i>
+                                <button onclick='deleteJournalEntry("${item.id}")' class="p-1.5 text-slate-400 hover:text-rose-400 text-xs transition">
+                                    <i class="fa-solid fa-trash"></i>
                                 </button>
                             </div>
                         </div>
+
+                        <div class="text-xs text-slate-300 space-y-1">
+                            <p><span class="text-slate-500">Sesi:</span> ${item.meta.session} &bull; <span class="text-slate-500">RR:</span> ${item.meta.rr}</p>
+                            <p><span class="text-slate-500">Keputusan Evaluasi:</span> Jawaban (${item.branch}) untuk "${item.branchQ_ID}"</p>
+                        </div>
+
+                        ${item.extraNote ? `
+                            <div class="bg-slate-900/80 rounded-lg p-2.5 text-xs text-slate-300 italic border border-slate-800">
+                                "${item.extraNote}"
+                            </div>
+                        ` : ''}
                     </div>
                 `;
             }).join('');
         }
 
-        function renderAnalytics() {
-            const total = journals.length;
-            document.getElementById('statTotal').textContent = total;
-
-            const wins = journals.filter(j => j.outcome === 'WIN');
-            const losses = journals.filter(j => j.outcome === 'LOSS');
-
-            const winCount = wins.length;
-            const lossCount = losses.length;
-            const executedTotal = winCount + lossCount;
-
-            const winRate = executedTotal > 0 ? Math.round((winCount / executedTotal) * 100) : 0;
-            document.getElementById('statWinRate').textContent = `${winRate}%`;
-            document.getElementById('statWinSub').textContent = `${winCount} Win / ${lossCount} Loss`;
-
-            const goodExecutionCount = journals.filter(j => (j.outcome === 'WIN' || j.outcome === 'LOSS') && j.branchAnswer === 'YES').length;
-            const qualityRatio = executedTotal > 0 ? Math.round((goodExecutionCount / executedTotal) * 100) : 0;
-            document.getElementById('statQuality').textContent = `${qualityRatio}%`;
-
-            const goodWins = journals.filter(j => j.outcome === 'WIN' && j.branchAnswer === 'YES').length;
-            const flawedWins = journals.filter(j => j.outcome === 'WIN' && j.branchAnswer === 'NO').length;
-
-            const goodLosses = journals.filter(j => j.outcome === 'LOSS' && j.branchAnswer === 'YES').length;
-            const badLosses = journals.filter(j => j.outcome === 'LOSS' && j.branchAnswer === 'NO').length;
-
-            const disciplinedNoTrades = journals.filter(j => j.outcome === 'NO_TRADES' && j.branchAnswer === 'NO').length;
-            const missedTrades = journals.filter(j => j.outcome === 'NO_TRADES' && j.branchAnswer === 'YES').length;
-
-            document.getElementById('statNoTrades').textContent = disciplinedNoTrades;
-            document.getElementById('statGoodWins').textContent = goodWins;
-            document.getElementById('statFlawedWins').textContent = flawedWins;
-            document.getElementById('statGoodLosses').textContent = goodLosses;
-            document.getElementById('statBadLosses').textContent = badLosses;
-            document.getElementById('statGoodNoTrades').textContent = disciplinedNoTrades;
-            document.getElementById('statMissedTrades').textContent = missedTrades;
+        function setHistoryFilter(filter) {
+            state.currentHistoryFilter = filter;
+            document.querySelectorAll('.history-filter-btn').forEach(btn => {
+                btn.classList.replace('bg-emerald-600', 'bg-slate-800');
+                btn.classList.replace('text-white', 'text-slate-300');
+            });
+            const activeBtn = document.getElementById(`filter-btn-${filter}`);
+            activeBtn.classList.replace('bg-slate-800', 'bg-emerald-600');
+            activeBtn.classList.replace('text-slate-300', 'text-white');
+            renderHistoryList();
         }
 
-        function exportDataJSON() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(journals, null, 2));
+        function downloadPDFFromHistory(id) {
+            const journal = getJournalFromStorage();
+            const target = journal.find(item => item.id === id);
+            if (target) {
+                generatePDF(target);
+            }
+        }
+
+        function deleteJournalEntry(id) {
+            showConfirmModal("Hapus Entry", "Apakah Anda yakin ingin menghapus catatan review ini dari memori browser?", () => {
+                let journal = getJournalFromStorage();
+                journal = journal.filter(item => item.id !== id);
+                localStorage.setItem('tr_journal_data', JSON.stringify(journal));
+                updateHistoryCount();
+                renderHistoryList();
+                showToast("Entry dihapus.", "info");
+            });
+        }
+
+        function resetForm() {
+            state.outcome = null;
+            state.branch = null;
+            removeImage();
+
+            document.querySelectorAll('.outcome-btn').forEach(btn => {
+                btn.classList.remove('border-emerald-500', 'border-rose-500', 'border-amber-500', 'bg-slate-800/80');
+                btn.classList.add('border-slate-800');
+                btn.querySelector('.check-icon').classList.add('opacity-0');
+            });
+
+            document.getElementById('dynamic-questions-container').classList.add('hidden');
+            document.getElementById('ans-1').value = "";
+            document.getElementById('ans-2').value = "";
+            document.getElementById('ans-3').value = "";
+            document.getElementById('ans-extra').value = "";
+            document.getElementById('meta-pair').value = "";
+            document.getElementById('meta-rr').value = "";
+
+            showToast("Form berhasil direset.", "info");
+        }
+
+        function exportJSONBackup() {
+            const journal = getJournalFromStorage();
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(journal, null, 2));
             const downloadAnchor = document.createElement('a');
             downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `trade_reviews_backup_${new Date().toISOString().slice(0,10)}.json`);
+            downloadAnchor.setAttribute("download", `Trade_Journal_Backup_${new Date().toISOString().slice(0,10)}.json`);
             document.body.appendChild(downloadAnchor);
             downloadAnchor.click();
             downloadAnchor.remove();
-            showToast('File JSON berhasil di-export!', 'success');
+            showToast("Backup JSON berhasil di-download!", "success");
         }
 
-        function importDataJSON(event) {
-            const fileReader = new FileReader();
-            fileReader.onload = function(e) {
+        function importJSONBackup(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
                 try {
-                    const importedData = JSON.parse(e.target.result);
-                    if (Array.isArray(importedData)) {
-                        journals = importedData;
-                        localStorage.setItem('trade_reviews_data', JSON.stringify(journals));
-                        renderHistoryList();
-                        renderAnalytics();
-                        updateBadges();
-                        showToast('Data Jurnal berhasil di-import!', 'success');
+                    const imported = JSON.parse(evt.target.result);
+                    if (Array.isArray(imported)) {
+                        localStorage.setItem('tr_journal_data', JSON.stringify(imported));
+                        updateHistoryCount();
+                        if (!document.getElementById('view-history').classList.contains('hidden')) {
+                            renderHistoryList();
+                        }
+                        showToast("Data riwayat berhasil di-import!", "success");
                     } else {
-                        showToast('Format JSON tidak valid.', 'error');
+                        showToast("Format JSON tidak valid.", "error");
                     }
                 } catch(err) {
-                    showToast('Gagal membaca file JSON.', 'error');
+                    showToast("Gagal membaca file JSON.", "error");
                 }
             };
-            if (event.target.files[0]) {
-                fileReader.readAsText(event.target.files[0]);
-            }
+            reader.readAsText(file);
         }
 
-        function updateBadges() {
-            const badge = document.getElementById('journal-count-badge');
-            if (badge) {
-                badge.textContent = journals.length;
-            }
-        }
+        function showToast(msg, type = "info") {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `pointer-events-auto px-4 py-3 rounded-xl shadow-2xl border text-xs font-medium flex items-center gap-2 animate-fade-in transition-all duration-300 ${
+                type === 'success' ? 'bg-emerald-950 border-emerald-500/50 text-emerald-200' :
+                type === 'error' ? 'bg-rose-950 border-rose-500/50 text-rose-200' :
+                'bg-slate-900 border-slate-700 text-slate-200'
+            }`;
 
-        function showToast(message, type = 'info') {
-            const toast = document.getElementById('toast');
-            const msg = document.getElementById('toastMsg');
-            const icon = document.getElementById('toastIcon');
+            const icon = type === 'success' ? 'fa-circle-check text-emerald-400' :
+                         type === 'error' ? 'fa-triangle-exclamation text-rose-400' :
+                         'fa-circle-info text-sky-400';
 
-            if (!toast || !msg || !icon) return;
+            toast.innerHTML = `<i class="fa-solid ${icon} text-base"></i> <span>${msg}</span>`;
+            container.appendChild(toast);
 
-            msg.textContent = message;
-            if (type === 'success') {
-                icon.className = "fa-solid fa-circle-check text-emerald-400 text-base";
-            } else if (type === 'error') {
-                icon.className = "fa-solid fa-triangle-exclamation text-rose-400 text-base";
-            } else {
-                icon.className = "fa-solid fa-circle-info text-blue-400 text-base";
-            }
-
-            toast.classList.remove('translate-y-20', 'opacity-0');
             setTimeout(() => {
-                toast.classList.add('translate-y-20', 'opacity-0');
-            }, 3000);
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
         }
 
-        window.onload = function() {
-            const now = new Date();
-            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            const dateInput = document.getElementById('tradeDate');
-            if (dateInput) {
-                dateInput.value = now.toISOString().slice(0, 16);
-            }
-            updateBadges();
-            renderHistoryList();
-            renderAnalytics();
-        };
+        let confirmCallback = null;
+        function showConfirmModal(title, msg, onConfirm) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-msg').innerText = msg;
+            confirmCallback = onConfirm;
+
+            const overlay = document.getElementById('modal-overlay');
+            overlay.classList.remove('hidden');
+            setTimeout(() => {
+                overlay.classList.remove('opacity-0');
+                document.getElementById('modal-box').classList.replace('scale-95', 'scale-100');
+            }, 10);
+
+            document.getElementById('modal-confirm-btn').onclick = () => {
+                if (confirmCallback) confirmCallback();
+                closeModal();
+            };
+        }
+
+        function closeModal() {
+            const overlay = document.getElementById('modal-overlay');
+            document.getElementById('modal-box').classList.replace('scale-100', 'scale-95');
+            overlay.classList.add('opacity-0');
+            setTimeout(() => overlay.classList.add('hidden'), 200);
+        }
     </script>
 </body>
 </html>
