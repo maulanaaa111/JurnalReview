@@ -143,7 +143,6 @@
         <!-- VIEW 1: REVIEW FORM -->
         <div id="view-review" class="animate-fade-in space-y-6">
             
-            <!-- Metadata Card -->
             <div class="bg-cardbg border border-cardborder rounded-2xl p-5 sm:p-6 shadow-xl relative overflow-hidden">
                 <div class="absolute top-0 left-0 w-1.5 h-full bg-emerald-500"></div>
                 <h2 class="text-lg font-semibold text-slate-100 mb-4 flex items-center gap-2">
@@ -191,7 +190,6 @@
                 </div>
             </div>
 
-            <!-- Step 1: Main Outcome Choice -->
             <div class="bg-cardbg border border-cardborder rounded-2xl p-5 sm:p-6 shadow-xl">
                 <div class="mb-4">
                     <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400">Judul Utama</span>
@@ -234,7 +232,6 @@
                 </div>
             </div>
 
-            <!-- DYNAMIC QUESTIONS CONTAINER -->
             <div id="dynamic-questions-container" class="hidden space-y-6">
                 <!-- Branching choice question card -->
                 <div id="branch-question-card" class="bg-cardbg border border-cardborder rounded-2xl p-5 sm:p-6 shadow-xl border-l-4 border-l-sky-500">
@@ -258,7 +255,6 @@
                     </div>
                 </div>
 
-                <!-- Textarea Reflection Questions -->
                 <div id="text-questions-card" class="hidden bg-cardbg border border-cardborder rounded-2xl p-5 sm:p-6 shadow-xl space-y-6">
                     <h3 class="text-md font-semibold text-slate-300 border-b border-slate-800 pb-3 flex items-center gap-2">
                         <i class="fa-solid fa-pen-to-square text-emerald-400"></i> Evaluasi & Jawaban Detil
@@ -290,7 +286,6 @@
                 </div>
             </div>
 
-            <!-- Submit and Export Actions -->
             <div id="actions-bar" class="hidden flex flex-wrap items-center justify-between gap-4 pt-2">
                 <button type="button" onclick="resetForm()" class="px-4 py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 text-sm font-medium transition">
                     <i class="fa-solid fa-rotate-left mr-1"></i> Reset Form
@@ -307,14 +302,58 @@
             </div>
         </div>
 
-        <!-- VIEW 2: HISTORY LIST -->
-    <div id="view-history" class="hidden animate-fade-in space-y-6">
-        <!-- ... existing history content ... -->
-    </div>
+        <div id="view-history" class="hidden animate-fade-in space-y-6">
+            <div class="bg-cardbg border border-cardborder rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+                    <div>
+                        <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-box-archive text-emerald-400"></i> Riwayat Review Transaksi
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-1">Daftar semua jurnal yang tersimpan di browser Anda</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="cursor-pointer px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-medium transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-file-import text-sky-400"></i> Import JSON
+                            <input type="file" id="import-json-input" accept=".json" onchange="importJSONBackup(event)" class="hidden">
+                        </label>
+                        <button onclick="exportJSONBackup()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-medium transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-file-export text-emerald-400"></i> Export JSON
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filter badges & Search input -->
+                <div class="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+                    <div class="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
+                        <button id="filter-btn-ALL" onclick="setHistoryFilter('ALL')" class="history-filter-btn px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-medium transition">
+                            Semua
+                        </button>
+                        <button id="filter-btn-WIN" onclick="setHistoryFilter('WIN')" class="history-filter-btn px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs font-medium transition">
+                            Win
+                        </button>
+                        <button id="filter-btn-LOSS" onclick="setHistoryFilter('LOSS')" class="history-filter-btn px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs font-medium transition">
+                            Loss
+                        </button>
+                        <button id="filter-btn-NOTRADE" onclick="setHistoryFilter('NOTRADE')" class="history-filter-btn px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs font-medium transition">
+                            No Trades
+                        </button>
+                    </div>
+
+                    <div class="relative min-w-[240px]">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                        <input type="text" id="history-search" oninput="renderHistoryList()" placeholder="Cari pair, catatan, atau jawaban..." class="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+
+                <!-- History items list -->
+                <div id="history-list-container" class="space-y-4 pt-2">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </div>
 
     </main>
 
-    <!-- HIDDEN PDF PRINT TEMPLATE DOM (Positioned safely behind interface for html2canvas) -->
     <div id="pdf-wrapper">
         <div id="pdf-render-area">
             <!-- Header section inside PDF -->
@@ -532,7 +571,10 @@
             // Set current date/time in form
             const now = new Date();
             now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            document.getElementById('meta-date').value = now.toISOString().slice(0, 16);
+            const dateElem = document.getElementById('meta-date');
+            if (dateElem) {
+                dateElem.value = now.toISOString().slice(0, 16);
+            }
 
             // Update badge count
             updateHistoryCount();
@@ -570,10 +612,12 @@
             });
 
             const selectedBtn = document.getElementById(`btn-outcome-${outcomeType.toLowerCase()}`);
-            const borderColor = outcomeType === 'WIN' ? 'border-emerald-500' : outcomeType === 'LOSS' ? 'border-rose-500' : 'border-amber-500';
-            selectedBtn.classList.remove('border-slate-800');
-            selectedBtn.classList.add(borderColor, 'bg-slate-800/80');
-            selectedBtn.querySelector('.check-icon').classList.remove('opacity-0');
+            if (selectedBtn) {
+                const borderColor = outcomeType === 'WIN' ? 'border-emerald-500' : outcomeType === 'LOSS' ? 'border-rose-500' : 'border-amber-500';
+                selectedBtn.classList.remove('border-slate-800');
+                selectedBtn.classList.add(borderColor, 'bg-slate-800/80');
+                selectedBtn.querySelector('.check-icon').classList.remove('opacity-0');
+            }
 
             // Show dynamic section
             const container = document.getElementById('dynamic-questions-container');
@@ -700,7 +744,7 @@
             try {
                 localStorage.setItem('tr_journal_data', JSON.stringify(journal));
                 updateHistoryCount();
-                showToast(" Review berhasil disimpan ke Journal!", "success");
+                showToast("Review berhasil disimpan ke Journal!", "success");
             } catch(e) {
                 showToast("Gagal menyimpan. Memori lokal penuh (coba hapus/kecilkan gambar).", "error");
             }
@@ -713,7 +757,10 @@
 
         function updateHistoryCount() {
             const journal = getJournalFromStorage();
-            document.getElementById('history-count-badge').innerText = journal.length;
+            const badge = document.getElementById('history-count-badge');
+            if (badge) {
+                badge.innerText = journal.length;
+            }
         }
 
         function validateForm() {
@@ -823,14 +870,17 @@
 
         function renderHistoryList() {
             const container = document.getElementById('history-list-container');
+            if (!container) return;
+
             const journal = getJournalFromStorage();
-            const searchTerm = document.getElementById('history-search').value.toLowerCase();
+            const searchElem = document.getElementById('history-search');
+            const searchTerm = searchElem ? searchElem.value.toLowerCase() : '';
 
             const filtered = journal.filter(item => {
                 const matchesFilter = state.currentHistoryFilter === 'ALL' || item.outcome === state.currentHistoryFilter;
                 const matchesSearch = item.meta.pair.toLowerCase().includes(searchTerm) || 
                                       (item.extraNote && item.extraNote.toLowerCase().includes(searchTerm)) ||
-                                      item.questions.some(q => q.ans.toLowerCase().includes(searchTerm));
+                                      item.questions.some(q => q.ans && q.ans.toLowerCase().includes(searchTerm));
                 return matchesFilter && matchesSearch;
             });
 
@@ -892,8 +942,10 @@
                 btn.classList.replace('text-white', 'text-slate-300');
             });
             const activeBtn = document.getElementById(`filter-btn-${filter}`);
-            activeBtn.classList.replace('bg-slate-800', 'bg-emerald-600');
-            activeBtn.classList.replace('text-slate-300', 'text-white');
+            if (activeBtn) {
+                activeBtn.classList.replace('bg-slate-800', 'bg-emerald-600');
+                activeBtn.classList.replace('text-slate-300', 'text-white');
+            }
             renderHistoryList();
         }
 
@@ -977,6 +1029,7 @@
 
         function showToast(msg, type = "info") {
             const container = document.getElementById('toast-container');
+            if (!container) return;
             const toast = document.createElement('div');
             toast.className = `pointer-events-auto px-4 py-3 rounded-xl shadow-2xl border text-xs font-medium flex items-center gap-2 animate-fade-in transition-all duration-300 ${
                 type === 'success' ? 'bg-emerald-950 border-emerald-500/50 text-emerald-200' :
